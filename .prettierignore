@@ -1,0 +1,31 @@
+# .prettierignore
+
+# 构建输出
+/dist
+dist
+
+# 依赖
+/node_modules
+node_modules
+
+# 覆盖率报告
+/coverage
+coverage
+
+# IDE 和编辑器配置文件
+.vscode
+.idea
+
+# 环境变量文件
+.env
+.env.*
+*.local
+
+# Lock 文件
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+
+# 其他不需要格式化的文件或目录
+# public/
+# build/

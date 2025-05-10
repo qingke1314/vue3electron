@@ -1,0 +1,22 @@
+body {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --el-color-primary: rgb(137 162 201);
+  --el-color-primary-light-9: rgb(237, 242, 255);
+  --el-color-primary-light-7: rgb(183 195 213);
+  --el-color-primary-light-5: rgb(118, 142, 177);
+  --el-color-primary-light-3: rgb(110, 128, 167);
+  --el-color-primary-light-1: rgb(111, 124, 146);
+  /*
+    --el-color-primary: rgb(90, 155, 90);
+  --el-color-primary-light-9: rgb(199, 214, 199);
+  --el-color-primary-light-7: rgb(151, 184, 151);
+  --el-color-primary-light-5: rgb(102, 139, 102);
+  --el-color-primary-light-3: rgb(59, 95, 59);
+  --el-color-primary-light-1: rgb(54, 90, 54);
+  */
+}
