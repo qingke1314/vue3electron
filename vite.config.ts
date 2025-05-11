@@ -9,10 +9,11 @@ import renderer from 'vite-plugin-electron-renderer';
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: './',
   server: {
     proxy: {
       '/gateway': {
-        target: 'http://localhost:3000',
+        target: 'http://118.178.197.208:9980',
         changeOrigin: true, // 是否改变源，后端收到的请求头中host会是目标地址
         rewrite: (path) => path.replace(/^\/gateway/, ''), // 将gateway去掉，否则后端收到的请求路径是/gateway/user/login
       },
@@ -44,14 +45,14 @@ export default defineConfig({
         entry: 'electron/main.ts',
         // Optional: Configure transpiling options for main process
         vite: {
-          // build: {
-          //   outDir: "dist-electron",
-          //   lib: {
-          //     entry: "electron/main.ts",
-          //     formats: ["cjs"], // 确保输出 CJS
-          //     fileName: () => "main.cjs",
-          //   },
-          // },
+          build: {
+            outDir: 'dist-electron',
+            rollupOptions: {
+              output: {
+                format: 'cjs', // 强制主进程代码为 CommonJS
+              },
+            },
+          },
         },
       },
       {
@@ -77,4 +78,13 @@ export default defineConfig({
     // Use Node.js API in the Renderer-process
     renderer(),
   ],
+  build: {
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: undefined,
+      },
+    },
+  },
 });

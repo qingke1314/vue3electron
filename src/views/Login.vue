@@ -18,7 +18,7 @@
           <el-input placeholder="昵称(可选)" v-model="form.username" />
         </el-form-item>
         <el-form-item label="" prop="password">
-          <el-input placeholder="密码" v-model="form.password" type="password" />
+          <el-input @keyup.enter="handleLogin(formRef)" placeholder="密码" v-model="form.password" type="password" />
         </el-form-item>
         <el-form-item>
           <el-button style="width: 100%" @click="handleRegister(formRef)">注册</el-button>
@@ -80,6 +80,7 @@ const handleLogin = async (formInstance) => {
       })
         .then((res) => {
           const { token, user } = res;
+          ElMessage.success('你好，' + user.name + '，欢迎登录SecNote');
           setUserInfo(user);
           localStorage.setItem('token', token);
 
@@ -92,7 +93,6 @@ const handleLogin = async (formInstance) => {
           }
           emailHistory.value = history;
           localStorage.setItem(EMAIL_HISTORY_KEY, JSON.stringify(history));
-          ElMessage.success('你好，' + user.name + '，欢迎登录SecNote');
           router.push('/');
         })
         .catch((error) => {

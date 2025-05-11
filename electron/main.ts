@@ -1,5 +1,6 @@
-import { app, BrowserWindow, globalShortcut } from 'electron';
-import path from 'node:path';
+import { app, BrowserWindow, globalShortcut, ipcMain } from 'electron';
+import { autoUpdater } from 'electron-updater';
+import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -26,13 +27,27 @@ process.env.VITE_PUBLIC = VITE_DEV_SERVER_URL
 
 let win: BrowserWindow | null;
 
+// 配置自动更新
+autoUpdater.autoDownload = false;
+autoUpdater.autoInstallOnAppQuit = true;
+
+// 使用 import 替代 require
+import log from 'electron-log';
+autoUpdater.logger = log;
+// @ts-ignore
+autoUpdater.logger.transports.file.level = 'debug';
+
 function createWindow() {
   win = new BrowserWindow({
     width: 1400,
     height: 800,
-    icon: path.join(process.env.VITE_PUBLIC, 'electron-vite.svg'),
+    icon: path.join(process.env.APP_ROOT, 'build/icons/icon.png'),
     webPreferences: {
       preload: path.join(__dirname, 'preload.js'),
+      nodeIntegration: false, // 禁用 Node 集成
+      contextIsolation: true, // 启用上下文隔离
+      sandbox: true, // 启用沙箱
+      webSecurity: true, // 启用 Web 安全
     },
   });
 
@@ -44,9 +59,49 @@ function createWindow() {
   if (VITE_DEV_SERVER_URL) {
     win.loadURL(VITE_DEV_SERVER_URL);
   } else {
-    // win.loadFile('dist/index.html')
-    win.loadFile(path.join(RENDERER_DIST, 'index.html'));
+    // 修改这里的加载路径
+    const indexPath = path.join(RENDERER_DIST, 'index.html');
+    console.log('Loading index.html from:', indexPath);
+    win.loadFile(indexPath);
   }
+}
+
+// 检查更新
+function checkForUpdates() {
+  console.log('Checking for updates...');
+  
+  // 检查更新
+  autoUpdater.checkForUpdates();
+
+  // 更新出错
+  autoUpdater.on('error', (err) => {
+    console.error('Update error:', err);
+    win?.webContents.send('update-error', err.message);
+  });
+
+  // 检测到新版本
+  autoUpdater.on('update-available', (info) => {
+    console.log('Update available:', info);
+    win?.webContents.send('update-available', info);
+  });
+
+  // 没有新版本
+  autoUpdater.on('update-not-available', (info) => {
+    console.log('Update not available:', info);
+    win?.webContents.send('update-not-available', info);
+  });
+
+  // 更新下载进度
+  autoUpdater.on('download-progress', (progressObj) => {
+    console.log('Download progress:', progressObj);
+    win?.webContents.send('download-progress', progressObj);
+  });
+
+  // 更新下载完成
+  autoUpdater.on('update-downloaded', (info) => {
+    console.log('Update downloaded:', info);
+    win?.webContents.send('update-downloaded', info);
+  });
 }
 
 // Quit when all windows are closed, except on macOS. There, it's common
@@ -69,6 +124,7 @@ app.on('activate', () => {
 
 app.whenReady().then(() => {
   createWindow();
+  checkForUpdates();
 
   // 注册全局快捷键
   const ret = globalShortcut.register('Control+Shift+D', () => {
@@ -79,7 +135,7 @@ app.whenReady().then(() => {
   });
 
   if (!ret) {
-    console.log('快捷键 Control+Shift+D 注册失败');
+    console.error('快捷键注册失败');
   }
 
   // 检查快捷键是否已注册 (可选)
@@ -89,4 +145,15 @@ app.whenReady().then(() => {
 // 应用退出前注销所有快捷键
 app.on('will-quit', () => {
   globalShortcut.unregisterAll();
+});
+
+// 监听渲染进程发来的更新请求
+ipcMain.on('check-for-updates', () => {
+  checkForUpdates();
+});
+
+// 监听开始下载的请求
+ipcMain.on('start-download', () => {
+  console.log('Starting download...');
+  autoUpdater.downloadUpdate();
 });

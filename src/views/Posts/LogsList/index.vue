@@ -115,7 +115,7 @@ const handleViewDetails = (log) => {
 };
 
 const handleEdit = (log) => {
-  console.log('编辑:', log.id);
+  router.push({ name: 'Editor', params: { id: log.id } });
 };
 
 const handleDelete = async (log) => {

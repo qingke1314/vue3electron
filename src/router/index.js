@@ -6,6 +6,7 @@ const routes = [
     path: '/',
     component: () => import('../components/Layout.vue'),
     meta: { requiresAuth: true }, // 假设首页需要登录
+    redirect: '/home',
     children: [
       {
         path: '/home',
@@ -23,6 +24,12 @@ const routes = [
         path: '/logs/list',
         name: 'LogsList',
         component: () => import('../views/Posts/LogsList/index.vue'),
+        meta: { requiresAuth: true }, // 假设此页面需要登录
+      },
+      {
+        path: '/logs/editor/:id',
+        name: 'Editor',
+        component: () => import('../views/Posts/Editor/index.vue'),
         meta: { requiresAuth: true }, // 假设此页面需要登录
       },
       {

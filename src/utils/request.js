@@ -1,10 +1,10 @@
 import axios from 'axios';
-import { ElMessageBox } from 'element-plus';
 import router from '@/router'; // 导入你的 Vue Router 实例
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 // 创建 Axios 实例
 const service = axios.create({
-  baseURL: '/gateway', // 假设你的代理配置了 /api
+  baseURL: baseURL, // 假设你的代理配置了 /api
   timeout: 15000, // 请求超时时间 (毫秒)
 });
 
