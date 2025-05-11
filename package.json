@@ -1,10 +1,10 @@
 {
-  "name": "my-dev-docs-vue",
-  "version": "0.0.4",
+  "name": "secNote",
+  "version": "1.0.0",
   "private": true,
   "main": "dist-electron/main.js",
   "author": "Sec <1774079811@qq.com>",
-  "description": "SecNote 您的云笔记小窝",
+  "description": "您的云笔记小窝",
   "scripts": {
     "build": "vue-tsc && vite build && electron-builder && node build/js/upload.js",
     "dev": "vite",

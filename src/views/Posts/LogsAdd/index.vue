@@ -25,14 +25,9 @@
 <script setup>
 import { ref, onMounted } from 'vue';
 import RichTextEditor from './RichTextEditor.vue'; // 导入你封装的组件
-import { getPosts, addPosts } from '@/apis/posts';
+import { addPosts } from '@/apis/posts';
 
 const loading = ref(false);
-onMounted(() => {
-  getPosts().then((res) => {
-    console.log(res, 'res');
-  });
-});
 const form = ref({
   title: '',
 });
