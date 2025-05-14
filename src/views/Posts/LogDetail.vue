@@ -234,7 +234,7 @@ const goBack = () => {
 
 <style scoped>
 .log-detail-container {
-  padding: 12px;
+  padding: 0;
   background-color: var(--el-bg-color-page, #f0f2f5);
   height: calc(100vh - 130px); /* 减去可能的头部和页头高度 */
   overflow: auto;

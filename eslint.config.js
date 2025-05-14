@@ -8,6 +8,7 @@ export default [
   // ...pluginVue.configs['flat/vue2-recommended'], // Use this if you are using Vue.js 2.x.
   {
     rules: {
+      "no-unused-vars": "error"
       // override/add rules settings here, such as:
       // 'vue/no-unused-vars': 'error'
     },

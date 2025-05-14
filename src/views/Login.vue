@@ -14,20 +14,32 @@
             @select="handleEmailSelect"
           />
         </el-form-item>
-        <el-form-item label="" prop="username">
+        <el-form-item v-if="loginType == LOGIN_TYPE.REGISTER" label="" prop="username">
           <el-input placeholder="昵称(可选)" v-model="form.username" />
         </el-form-item>
         <el-form-item label="" prop="password">
-          <el-input @keyup.enter="handleLogin(formRef)" placeholder="密码" v-model="form.password" type="password" />
+          <el-input
+            @keyup.enter="handleLogin(formRef)"
+            placeholder="密码"
+            v-model="form.password"
+            type="password"
+          />
         </el-form-item>
         <el-form-item>
-          <el-button style="width: 100%" @click="handleRegister(formRef)">注册</el-button>
-          <el-button
-            style="width: 100%; margin: 8px 0 0 0"
-            type="primary"
-            @click="handleLogin(formRef)"
-            >登录</el-button
-          >
+          <el-button style="width: 100%" type="primary" @click="handleLogin(formRef)">{{
+            loginType !== LOGIN_TYPE.LOGIN ? '注册' : '登录'
+          }}</el-button>
+          <div class="register-button-container">
+            <el-button
+              class="register-button"
+              type="primary"
+              link
+              @click="
+                loginType = loginType == LOGIN_TYPE.LOGIN ? LOGIN_TYPE.REGISTER : LOGIN_TYPE.LOGIN
+              "
+              >切换{{ loginType === LOGIN_TYPE.LOGIN ? '注册' : '登录' }}</el-button
+            >
+          </div>
         </el-form-item>
       </el-form>
     </div>
@@ -41,8 +53,13 @@ import { useRouter } from 'vue-router';
 import { useUsersStore } from '@/pinia/users';
 import { ElMessage } from 'element-plus';
 
+const LOGIN_TYPE = {
+  LOGIN: 'login',
+  REGISTER: 'register',
+};
 const formRef = ref(null);
 const router = useRouter();
+const loginType = ref(LOGIN_TYPE.LOGIN);
 const form = ref({
   email: '',
   password: '',
@@ -71,6 +88,10 @@ const rules = ref({
 });
 
 const handleLogin = async (formInstance) => {
+  if (loginType.value == LOGIN_TYPE.REGISTER) {
+    handleRegister(formInstance);
+    return;
+  }
   if (!formInstance) return;
   formInstance.validate((valid) => {
     if (valid) {
@@ -147,6 +168,11 @@ const handleEmailSelect = (item) => {
 </script>
 
 <style scoped>
+.register-button-container {
+  margin-top: 8px;
+  text-align: right;
+  width: 100%;
+}
 .login-title {
   font-weight: bold;
   font-size: 22px;
@@ -167,7 +193,7 @@ const handleEmailSelect = (item) => {
 .login-form {
   width: 36vw;
   margin: 0 auto;
-  padding: 40px 20px;
+  padding: 40px 20px 10px 20px;
   background-color: var(--el-bg-color);
   top: 20%;
   position: relative;

@@ -10,7 +10,10 @@
         class="search-input"
       />
       <el-button type="primary" @click="createNewNote">
-        <el-icon><Plus /></el-icon>新建笔记
+        <el-icon style="margin-right: 5px"><Plus /></el-icon>新建笔记
+      </el-button>
+      <el-button type="primary" @click="handleViewList">
+        <el-icon style="margin-right: 5px"><Notebook /></el-icon>日志列表
       </el-button>
     </div>
 
@@ -23,12 +26,8 @@
           class="category-menu"
           @select="handleCategorySelect"
         >
-          <el-menu-item index="all">
-            <el-icon><Document /></el-icon>
-            <span>全部笔记</span>
-          </el-menu-item>
           <el-menu-item index="favorite">
-            <el-icon><Star /></el-icon>
+            <el-icon><StarFilled color="var(--el-color-warning)" /></el-icon>
             <span>收藏笔记</span>
           </el-menu-item>
           <el-menu-item index="recent">
@@ -41,37 +40,38 @@
       <!-- 右侧笔记列表 -->
       <div class="note-list">
         <el-empty v-if="filteredNotes.length === 0" description="暂无笔记" />
-        <el-card
-          v-for="note in filteredNotes"
-          :key="note.id"
-          class="note-card"
-          @click="openNote(note)"
-        >
+        <el-card v-for="note in filteredNotes" :key="note.id" class="note-card">
           <template #header>
             <div class="note-header">
-              <h3>{{ note.title }}</h3>
-              <el-dropdown trigger="click" @command="handleNoteCommand($event, note)">
-                <el-button type="text">
-                  <el-icon><More /></el-icon>
-                </el-button>
-                <template #dropdown>
-                  <el-dropdown-menu>
-                    <el-dropdown-item command="edit">编辑</el-dropdown-item>
-                    <el-dropdown-item command="favorite">
-                      {{ note.isFavorite ? '取消收藏' : '收藏' }}
-                    </el-dropdown-item>
-                    <el-dropdown-item command="delete" divided>删除</el-dropdown-item>
-                  </el-dropdown-menu>
-                </template>
-              </el-dropdown>
+              <h3 @click="openNote(note)" class="note-title-clickable">{{ note.title }}</h3>
+              <div class="note-actions">
+                <el-button
+                  v-if="note.published"
+                  :icon="View"
+                  size="small"
+                  @click="viewNote(note)"
+                />
+                <el-button
+                  v-if="!note.published"
+                  :icon="Edit"
+                  size="small"
+                  @click="openNote(note)"
+                />
+                <el-button
+                  :style="{ color: note.isFavoritedByCurrentUser ? 'var(--el-color-warning)' : '' }"
+                  :icon="note.isFavoritedByCurrentUser ? StarFilled : Star"
+                  size="small"
+                  @click="handleToggleFavorite(note)"
+                />
+              </div>
             </div>
           </template>
           <div class="note-content">
-            <p class="note-preview">{{ note.preview }}</p>
+            <p class="note-preview">{{ note.previewText }}</p>
             <div class="note-footer">
               <span class="note-time">{{ formatTime(note.updateTime) }}</span>
-              <el-tag size="small" :type="note.category === 'work' ? 'success' : 'info'">
-                {{ note.category }}
+              <el-tag size="small" :type="note.published ? 'success' : 'info'">
+                {{ note.published ? '已发布' : '草稿' }}
               </el-tag>
             </div>
           </div>
@@ -81,104 +81,103 @@
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Document, Star, Clock, Plus, More } from '@element-plus/icons-vue'
-import type { Note } from '../types/note'
+<script setup>
+import { ref, computed, onMounted } from 'vue';
+import { useRouter } from 'vue-router';
+import { ElMessage, ElMessageBox } from 'element-plus';
+import { getPosts, favoritePost, unfavoritePost } from '@/apis/posts.js';
+import { Star, Clock, Plus, Edit, Notebook, View, StarFilled } from '@element-plus/icons-vue';
 
 // 状态定义
-const searchQuery = ref('')
-const activeCategory = ref('all')
-const notes = ref<Note[]>([
-  {
-    id: 1,
-    title: '示例笔记',
-    preview: '这是一个示例笔记的内容预览...',
-    updateTime: new Date(),
-    category: 'work',
-    isFavorite: false
+const searchQuery = ref('');
+const activeCategory = ref('recent');
+const notes = ref([]);
+
+onMounted(() => {
+  getData();
+});
+const getData = async () => {
+  const params = {};
+  switch (activeCategory.value) {
+    case 'favorite':
+      params.isFavorited = true;
+      break;
+    case 'recent':
+      params.lastEditedAfter = new Date().getTime() - 1000 * 60 * 60 * 24 * 3; // 3天前
+      break;
   }
-  // 更多笔记数据...
-])
+  try {
+    const res = await getPosts(params);
+    notes.value = res.map((n) => ({
+      ...n,
+      previewText: n.previewText || n.content?.substring(0, 100) + '...',
+      updateTime: n.updateTime || n.updatedAt || Date.now(),
+      published: n.published || false,
+    }));
+  } catch (error) {
+    console.error('获取笔记失败:', error);
+    notes.value = [];
+    ElMessage.error('获取笔记列表失败');
+  }
+};
 
 // 计算属性：过滤后的笔记列表
 const filteredNotes = computed(() => {
-  let result = notes.value
+  let result = notes.value;
 
   // 搜索过滤
   if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    result = result.filter(note => 
-      note.title.toLowerCase().includes(query) || 
-      note.preview.toLowerCase().includes(query)
-    )
+    const query = searchQuery.value.toLowerCase();
+    result = result.filter(
+      (note) =>
+        (note.title || '').toLowerCase().includes(query) ||
+        (note.previewText || '').toLowerCase().includes(query)
+    );
   }
-
-  // 分类过滤
-  switch (activeCategory.value) {
-    case 'favorite':
-      result = result.filter(note => note.isFavorite)
-      break
-    case 'recent':
-      result = [...result].sort((a, b) => 
-        b.updateTime.getTime() - a.updateTime.getTime()
-      ).slice(0, 10)
-      break
-  }
-
-  return result
-})
+  return result;
+});
 
 // 方法定义
-const router = useRouter()
+const router = useRouter();
 
 const createNewNote = () => {
-  router.push('/editor')
-}
+  router.push('/editor');
+};
 
-const openNote = (note: Note) => {
-  router.push(`/editor/${note.id}`)
-}
+const openNote = (note) => {
+  router.push({ name: 'Editor', params: { id: note.id } });
+};
 
-const handleCategorySelect = (index: string) => {
-  activeCategory.value = index
-}
+const viewNote = (note) => {
+  router.push({ name: 'LogDetail', params: { id: note.id } });
+};
 
-const handleNoteCommand = async (command: string, note: Note) => {
-  switch (command) {
-    case 'edit':
-      openNote(note)
-      break
-    case 'favorite':
-      note.isFavorite = !note.isFavorite
-      ElMessage.success(note.isFavorite ? '已收藏' : '已取消收藏')
-      break
-    case 'delete':
-      try {
-        await ElMessageBox.confirm('确定要删除这个笔记吗？', '提示', {
-          type: 'warning'
-        })
-        // 执行删除操作
-        notes.value = notes.value.filter(n => n.id !== note.id)
-        ElMessage.success('删除成功')
-      } catch {
-        // 用户取消删除
-      }
-      break
-  }
-}
+const handleCategorySelect = (index) => {
+  activeCategory.value = index;
+  getData();
+};
 
-const formatTime = (date: Date) => {
+const handleViewList = () => {
+  router.push({ name: 'LogsList' });
+};
+
+const handleToggleFavorite = async (log) => {
+  const fn = log.isFavoritedByCurrentUser ? unfavoritePost : favoritePost;
+  await fn(log.id);
+  ElMessage.success(log.isFavoritedByCurrentUser ? '取消收藏成功' : '收藏成功');
+  getData();
+};
+
+const formatTime = (dateString) => {
+  if (!dateString) return '未知时间';
+  const date = new Date(dateString);
   return new Intl.DateTimeFormat('zh-CN', {
-    year: 'numeric',
     month: '2-digit',
     day: '2-digit',
     hour: '2-digit',
-    minute: '2-digit'
-  }).format(date)
-}
+    minute: '2-digit',
+  }).format(date);
+};
 </script>
 
 <style scoped>
@@ -192,12 +191,12 @@ const formatTime = (date: Date) => {
 
 .top-bar {
   display: flex;
-  gap: 16px;
   margin-bottom: 20px;
 }
 
 .search-input {
   width: 300px;
+  margin-right: 10px;
 }
 
 .main-content {
@@ -221,19 +220,37 @@ const formatTime = (date: Date) => {
 .note-list {
   flex: 1;
   overflow-y: auto;
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
   padding: 4px;
 }
 
 .note-card {
-  cursor: pointer;
-  transition: transform 0.2s;
+  transition: box-shadow 0.2s;
+  min-height: 120px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 4px;
+  background-color: white;
 }
 
 .note-card:hover {
-  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.note-card .el-card__header {
+  padding: 12px 16px;
+  border-bottom: 1px solid #ebeef5;
+}
+
+.note-card .el-card__body {
+  padding: 12px 16px;
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  cursor: pointer;
 }
 
 .note-header {
@@ -242,26 +259,39 @@ const formatTime = (date: Date) => {
   align-items: center;
 }
 
-.note-header h3 {
+.note-title-clickable {
   margin: 0;
-  font-size: 16px;
+  font-size: 17px;
   color: #303133;
+  font-weight: 500;
+  cursor: pointer;
+  flex-grow: 1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.note-actions {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
 }
 
 .note-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
+  flex-grow: 1;
 }
 
 .note-preview {
   margin: 0;
   color: #606266;
   font-size: 14px;
-  line-height: 1.5;
+  line-height: 1.6;
   display: -webkit-box;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
+  -webkit-line-clamp: 3;
   overflow: hidden;
 }
 
@@ -271,5 +301,7 @@ const formatTime = (date: Date) => {
   align-items: center;
   font-size: 12px;
   color: #909399;
+  margin-top: auto;
+  padding-top: 8px;
 }
 </style>

@@ -42,6 +42,7 @@ service.interceptors.response.use(
     return response.data; // 默认直接返回 response.data
   },
   (error) => {
+    console.log('error', error);
     // 对响应错误做点什么
     console.error('Response Error:', error.response || error.message || error); // for debug
 
@@ -70,6 +71,8 @@ service.interceptors.response.use(
         });
       // 返回一个 pending的Promise，阻止后续的错误处理链继续执行，因为我们已经处理了401
       return new Promise(() => {});
+    } else {
+      ElMessage.error(error.response.data.message || '请求失败');
     }
     // 可以根据状态码进行统一错误处理
     // if (error.response) {

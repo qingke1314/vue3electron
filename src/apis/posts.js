@@ -1,7 +1,11 @@
 import request from '@/utils/request';
 
-export const getPosts = () => {
-  return request.get('/posts/getAll');
+export const getPosts = (params) => {
+  return request({
+    url: '/posts/getAll',
+    method: 'get',
+    params,
+  });
 };
 
 export const getPostById = (id) => {
@@ -61,4 +65,18 @@ export const getCommentsByPostId = (postId) => {
  */
 export const addCommentToPost = (postId, commentData) => {
   return request.post(`/posts/${postId}/comments`, commentData);
+};
+
+/**
+ * 收藏文章
+ */
+export const favoritePost = (postId) => {
+  return request.post(`/posts/${postId}/favorite`);
+};
+
+/**
+ * 取消收藏文章
+ */
+export const unfavoritePost = (postId) => {
+  return request.delete(`/posts/${postId}/favorite`);
 };
