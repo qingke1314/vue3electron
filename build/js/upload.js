@@ -7,7 +7,6 @@ const fs = require('fs');
 function waitForFile(filePath, maxAttempts = 10, interval = 1000) {
   return new Promise((resolve, reject) => {
     let attempts = 0;
-    
     const checkFile = () => {
       attempts++;
       if (fs.existsSync(filePath)) {
@@ -21,22 +20,22 @@ function waitForFile(filePath, maxAttempts = 10, interval = 1000) {
         setTimeout(checkFile, interval);
       }
     };
-    
+
     checkFile();
   });
 }
 
 // 上传函数
 async function uploadFiles() {
-  console.log("INFO: Starting upload process...");
-  
+  console.log('INFO: Starting upload process...');
+
   // 从 package.json 获取版本号
   const packageJson = require('../../package.json');
   const version = packageJson.version;
-  
+
   // 定义输出目录
   const outDir = path.join(__dirname, '../../release');
-  
+
   // 定义需要检查的文件
   const latestYmlPath = path.join(outDir, 'latest.yml');
   const exePath = path.join(outDir, `SecNote Setup ${version}.exe`);
@@ -46,7 +45,7 @@ async function uploadFiles() {
     // 等待 latest.yml 文件生成
     console.log('Waiting for latest.yml to be generated...');
     await waitForFile(latestYmlPath);
-    
+
     // 验证其他必要文件是否存在
     const requiredFiles = [exePath, blockmapPath];
     for (const file of requiredFiles) {
@@ -70,7 +69,7 @@ async function uploadFiles() {
       throw new Error(`Upload script not found at ${uploadScriptPath}`);
     }
 
-    let bashExePath = "D:\\Program Files\\Git\\bin\\bash.exe";
+    let bashExePath = 'D:\\Program Files\\Git\\bin\\bash.exe';
 
     if (!fs.existsSync(bashExePath)) {
       console.error(`ERROR: bash.exe not found at specified path: ${bashExePath}`);
@@ -80,17 +79,17 @@ async function uploadFiles() {
       console.log(`INFO: Using bash from: ${bashExePath}`);
     }
 
-    const env = { 
-      ...process.env, 
+    const env = {
+      ...process.env,
       BUILD_OUTPUT_DIR: outDir,
-      ELECTRON_BUILDER_VERSION: version
+      ELECTRON_BUILDER_VERSION: version,
     };
 
     console.log(`INFO: Executing: ${bashExePath} ${uploadScriptPath}`);
     const result = spawnSync(bashExePath, [uploadScriptPath], {
       stdio: 'inherit',
       shell: false,
-      env: env
+      env: env,
     });
 
     if (result.error) {
@@ -101,9 +100,9 @@ async function uploadFiles() {
       console.error(`ERROR: Upload script exited with code ${result.status}.`);
       throw new Error(`Upload script exited with code ${result.status}`);
     }
-    console.log("INFO: Upload script finished successfully.");
+    console.log('INFO: Upload script finished successfully.');
   } catch (error) {
-    console.error("ERROR: Upload process failed.", error);
+    console.error('ERROR: Upload process failed.', error);
     process.exit(1);
   }
 }
