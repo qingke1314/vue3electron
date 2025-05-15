@@ -10,14 +10,18 @@
       </el-form-item>
       <el-form-item required label="内容：">
         <div v-show="hasInit" class="editor-container">
-          <RichTextEditor v-model="editorContent" :init="customInitOptions" @change="onEditorChange"
-            @onInit="onEditorInit" />
+          <RichTextEditor
+            v-model="editorContent"
+            :init="customInitOptions"
+            @change="onEditorChange"
+            @onInit="onEditorInit"
+          />
         </div>
       </el-form-item>
     </el-form>
     <div class="tool">
       <el-button @click="handleSave(false)">保存草稿</el-button>
-      <el-button type="primary" @click="handleSave(true)">保存</el-button>
+      <el-button type="primary" @click="handleSave(true)">发布</el-button>
     </div>
   </div>
 </template>
@@ -39,8 +43,7 @@ const form = ref({
 const editorContent = ref('');
 
 // 编辑器配置
-const customInitOptions = {
-};
+const customInitOptions = {};
 
 // 处理编辑器内容变化
 const onEditorChange = (content) => {
@@ -141,4 +144,4 @@ onMounted(() => {
   width: 100%;
   height: calc(100vh - 250px);
 }
-</style> 
+</style>

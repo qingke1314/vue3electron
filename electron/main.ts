@@ -57,7 +57,6 @@ function createWindow() {
       webSecurity: true, // 启用 Web 安全
     },
   });
-  win.webContents.openDevTools();
   // 创建菜单模板
   const template: MenuItemConstructorOptions[] = [
     {
