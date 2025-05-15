@@ -1,4 +1,11 @@
-import { app, BrowserWindow, globalShortcut, ipcMain, Menu, MenuItemConstructorOptions } from 'electron';
+import {
+  app,
+  BrowserWindow,
+  globalShortcut,
+  ipcMain,
+  Menu,
+  MenuItemConstructorOptions,
+} from 'electron';
 import { autoUpdater } from 'electron-updater';
 import * as path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -50,7 +57,7 @@ function createWindow() {
       webSecurity: true, // 启用 Web 安全
     },
   });
-
+  win.webContents.openDevTools();
   // 创建菜单模板
   const template: MenuItemConstructorOptions[] = [
     {
@@ -64,8 +71,8 @@ function createWindow() {
         { role: 'paste', label: '粘贴' },
         { role: 'delete', label: '删除' },
         { type: 'separator' },
-        { role: 'selectAll', label: '全选' }
-      ]
+        { role: 'selectAll', label: '全选' },
+      ],
     },
     {
       label: '视图',
@@ -78,8 +85,8 @@ function createWindow() {
         { role: 'zoomIn', label: '放大' },
         { role: 'zoomOut', label: '缩小' },
         { type: 'separator' },
-        { role: 'togglefullscreen', label: '全屏' }
-      ]
+        { role: 'togglefullscreen', label: '全屏' },
+      ],
     },
     {
       label: '帮助',
@@ -88,10 +95,10 @@ function createWindow() {
           label: '检查更新',
           click: () => {
             checkForUpdates();
-          }
-        }
-      ]
-    }
+          },
+        },
+      ],
+    },
   ];
 
   // 创建菜单
@@ -116,7 +123,7 @@ function createWindow() {
 // 检查更新
 function checkForUpdates() {
   console.log('Checking for updates...');
-  
+
   // 检查更新
   autoUpdater.checkForUpdates();
 
@@ -171,7 +178,7 @@ app.on('activate', () => {
 
 app.whenReady().then(() => {
   createWindow();
-  checkForUpdates();
+  // checkForUpdates();
 
   // 注册全局快捷键
   const ret = globalShortcut.register('Control+Shift+D', () => {

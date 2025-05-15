@@ -1,6 +1,8 @@
 <template>
   <el-container class="common-layout">
-    <el-header class="common-header"></el-header>
+    <el-header class="common-header">
+      <LoginHeader />
+    </el-header>
     <el-container>
       <el-aside :width="asideWidth" class="common-aside">
         <side-menu :menu-items="menuConfig" />
@@ -17,6 +19,8 @@
 import { ref, computed } from 'vue';
 import { storeToRefs } from 'pinia';
 import { useLayoutStore } from '@/pinia/layout';
+import { menuConfig } from '@/utils/const';
+import LoginHeader from '@/views/LoginHeader.vue';
 import SideMenu from './SideMenu.vue';
 
 const { isCollapse } = storeToRefs(useLayoutStore());
@@ -24,77 +28,13 @@ const { isCollapse } = storeToRefs(useLayoutStore());
 const asideWidth = computed(() => {
   return isCollapse.value ? '64px' : '200px';
 });
-
-// 假设 menuConfig 会从父组件传入，或者从 store 中获取
-//  为了演示，这里定义一个示例配置
-// 在实际应用中，你应该从外部传入或在更高级别的地方定义
-const menuConfig = [
-  {
-    name: '首页',
-    path: '/',
-    icon: 'HomeFilled', // 假设你已经全局注册了 Element Plus 图标
-  },
-  {
-    name: '日志管理',
-    icon: 'Document',
-    path: '/logs',
-    children: [
-      {
-        name: '新建日志',
-        path: '/logs/add',
-        icon: 'DocumentAdd',
-      },
-      {
-        name: '日志列表',
-        path: '/logs/list',
-        icon: 'Files',
-      },
-    ],
-  },
-  {
-    name: '创意管理',
-    path: '/ideas',
-    icon: 'Opportunity',
-  },
-  {
-    name: '错题集',
-    // path: '/errors', // 父菜单可以没有path，如果它仅用于展开
-    icon: 'CollectionTag',
-    children: [
-      {
-        name: '前端错题',
-        path: '/errors',
-        icon: 'Tickets',
-      },
-      // {
-      //   name: "后端错题",
-      //   path: "/errors/backend",
-      //   // icon: 'DataLine'
-      // },
-    ],
-  },
-  {
-    name: '个人信息',
-    path: '/configs',
-    icon: 'Setting',
-  },
-];
-
-// 如果你需要从父组件接收 menuConfig，则使用 defineProps
-// import { defineProps } from 'vue';
-// defineProps({
-//   menuConfig: {
-//     type: Array,
-//     required: true
-//   }
-// });
 </script>
 
 <style lang="scss" scoped>
 .common-layout {
   height: 100vh;
   .common-header {
-    background-color: var(--el-color-primary-light-7);
+    background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
     // 添加一些内边距和文本样式，使其看起来更像页眉
     padding: 0 20px;
     display: flex;

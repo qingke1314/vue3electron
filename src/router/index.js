@@ -1,88 +1,130 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
-import Login from '../views/Login.vue'; // 导入登录组件
+import Home from '../views/Home.vue';
+import { useUsersStore } from '@/pinia/users'; // 导入 store
+// import { ElMessage } from 'element-plus'; // 如果需要提示
 
 const routes = [
   {
     path: '/',
-    component: () => import('../components/Layout.vue'),
-    meta: { requiresAuth: true }, // 假设首页需要登录
     redirect: '/home',
+    component: () => import('../components/Layout.vue'),
     children: [
       {
         path: '/home',
         name: 'Home',
-        component: () => import('../views/Home.vue'),
-        meta: { requiresAuth: true }, // 假设首页需要登录
+        component: Home,
+        meta: { requiresAuth: true },
       },
       {
-        path: '/logs/add',
-        name: 'PostsAdd',
-        component: () => import('../views/Posts/LogsAdd/index.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
-      },
-      {
-        path: '/logs/list',
-        name: 'LogsList',
-        component: () => import('../views/Posts/LogsList/index.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
-      },
-      {
-        path: '/logs/editor/:id',
-        name: 'Editor',
-        component: () => import('../views/Posts/Editor/index.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
-      },
-      {
-        path: '/logs/detail/:id', // 使用:id作为动态参数
-        name: 'LogDetail',
-        component: () => import('../views/Posts/LogDetail.vue'), // 直接引用导入的组件
-        meta: { requiresAuth: true }, // 通常详情页也需要登录
-        props: true, // 将路由参数作为props传递给组件 (route.params.id 会作为 id prop)
-      },
-      {
-        path: '/errors',
-        name: 'Errors',
-        component: () => import('../views/ErrorsView.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
+        path: '/logs',
+        name: 'Logs',
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: '/logs/add',
+            name: 'LogsAdd',
+            component: () => import('../views/Posts/LogsAdd/index.vue'),
+            meta: { requiresAuth: true }, // 假设此页面需要登录
+          },
+          {
+            path: '/logs/list',
+            name: 'LogsList',
+            component: () => import('../views/Posts/LogsList/index.vue'),
+            meta: { requiresAuth: true }, // 假设此页面需要登录
+          },
+          {
+            path: '/logs/editor/:id',
+            name: 'Editor',
+            component: () => import('../views/Posts/Editor/index.vue'),
+            meta: { requiresAuth: true }, // 假设此页面需要登录
+          },
+          {
+            path: '/logs/detail/:id', // 使用:id作为动态参数
+            name: 'LogDetail',
+            component: () => import('../views/Posts/LogDetail.vue'), // 直接引用导入的组件
+            meta: { requiresAuth: true }, // 通常详情页也需要登录
+            props: true, // 将路由参数作为props传递给组件 (route.params.id 会作为 id prop)
+          },
+        ],
       },
       {
         path: '/configs',
         name: 'Configs',
         component: () => import('../views/ConfigsView.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
-      },
-      {
-        path: '/ideas',
-        name: 'Ideas',
-        component: () => import('../views/IdeasView/index.vue'),
-        meta: { requiresAuth: true }, // 假设此页面需要登录
+        meta: { requiresAuth: true },
       },
     ],
   },
   {
     path: '/login',
     name: 'Login',
-    component: Login,
+    component: () => import('../views/Login.vue'),
+    meta: { requiresAuth: false }, // 登录页不需要认证
   },
+  // 可以在这里添加一个404页面
+  // { path: '/:pathMatch(.*)*', name: 'NotFound', component: () => import('../views/NotFound.vue') }
 ];
 
 const router = createRouter({
-  history: createWebHashHistory(), // Electron 通常使用 Hash 模式
+  history: createWebHashHistory(),
   routes,
 });
 
-// 全局前置守卫
-router.beforeEach((to, _from, next) => {
-  const isLoggedIn = localStorage.getItem('token');
+router.beforeEach(async (to, from, next) => {
+  const usersStore = useUsersStore();
+  const token = usersStore.token;
 
-  if (to.matched.some((record) => record.meta.requiresAuth) && !isLoggedIn) {
-    // 如果目标路由需要认证且用户未登录
-    next({ name: 'Login' }); // 重定向到登录页
-  } else if (to.name === 'Login' && isLoggedIn) {
-    // 如果用户已登录且试图访问登录页，则重定向到首页
-    next({ name: 'Home' });
+  // 检查目标路由是否为登录页
+  if (to.name === 'Login') {
+    if (token) {
+      // 如果有token，检查用户信息是否已加载
+      if (!usersStore.isProfileLoaded) {
+        const profileFetched = await usersStore.fetchAndSetUser();
+        if (profileFetched) {
+          next({ path: '/' }); // 用户信息加载成功，跳转到首页
+          return;
+        }
+        // 如果加载失败（token可能无效），允许访问登录页，并清除无效信息
+        usersStore.clearTokenAndInfo();
+        next();
+        return;
+      }
+      // 用户信息已加载，跳转到首页
+      next({ path: '/' });
+    } else {
+      next(); // 没有token，正常访问登录页
+    }
+    return;
+  }
+
+  // 对于非登录页
+  if (to.meta.requiresAuth) {
+    if (token) {
+      if (!usersStore.isProfileLoaded) {
+        const profileFetched = await usersStore.fetchAndSetUser();
+        if (!profileFetched) {
+          usersStore.clearTokenAndInfo();
+          next({ name: 'Login', query: { redirect: to.fullPath } });
+          return;
+        }
+      }
+      // 再次检查 isLoggedIn，因为 fetchAndSetUser 可能会改变它
+      if (usersStore.isLoggedIn) {
+        next();
+      } else {
+        // 如果 fetchAndSetUser 后依然不是 isLoggedIn，说明 token 有问题
+        usersStore.clearTokenAndInfo();
+        next({ name: 'Login', query: { redirect: to.fullPath } });
+      }
+    } else {
+      next({ name: 'Login', query: { redirect: to.fullPath } });
+    }
   } else {
-    next(); // 否则，正常导航
+    // 目标路由不需要认证，但如果用户有 token 且信息未加载，也尝试加载一次
+    if (token && !usersStore.isProfileLoaded) {
+      await usersStore.fetchAndSetUser(); // 不阻塞导航
+    }
+    next();
   }
 });
 

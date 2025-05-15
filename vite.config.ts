@@ -14,7 +14,7 @@ export default defineConfig({
     proxy: {
       '/gateway': {
         target: 'http://localhost:3000',
-        //target: 'http://118.178.197.208:9980',
+        // target: 'http://118.178.197.208:9980',
         changeOrigin: true, // 是否改变源，后端收到的请求头中host会是目标地址
         rewrite: (path) => path.replace(/^\/gateway/, ''), // 将gateway去掉，否则后端收到的请求路径是/gateway/user/login
       },

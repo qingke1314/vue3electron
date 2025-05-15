@@ -15,3 +15,26 @@ export const queryLogin = (data) => {
     data,
   });
 };
+
+export const validateToken = () => {
+  return request({
+    url: '/validateToken',
+    method: 'POST',
+  });
+};
+
+export const updateCurrentUserProfile = (data) => {
+  return request({
+    url: '/users/profile',
+    method: 'PATCH',
+    data,
+  });
+};
+
+export const updateUserPassword = (data) => {
+  return request({
+    url: '/users/changePassword',
+    method: 'POST',
+    data,
+  });
+};

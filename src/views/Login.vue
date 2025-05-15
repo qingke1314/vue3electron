@@ -29,9 +29,11 @@
           <el-button style="width: 100%" type="primary" @click="handleLogin(formRef)">{{
             loginType !== LOGIN_TYPE.LOGIN ? '注册' : '登录'
           }}</el-button>
-          <div class="register-button-container">
+        </el-form-item>
+        <el-form-item style="margin-top: -12px">
+          <div class="remember-me-container">
+            <el-checkbox style="margin-left: 8px" v-model="form.rememberMe">记住我</el-checkbox>
             <el-button
-              class="register-button"
               type="primary"
               link
               @click="
@@ -51,7 +53,6 @@ import { queryRegister, queryLogin } from '@/apis/users';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useUsersStore } from '@/pinia/users';
-import { ElMessage } from 'element-plus';
 
 const LOGIN_TYPE = {
   LOGIN: 'login',
@@ -64,9 +65,10 @@ const form = ref({
   email: '',
   password: '',
   username: '',
+  rememberMe: false,
 });
 const usersStore = useUsersStore();
-const { setUserInfo } = usersStore;
+const { setUserInfo, setToken } = usersStore;
 
 const emailHistory = ref([]);
 const MAX_EMAIL_HISTORY = 5;
@@ -102,9 +104,7 @@ const handleLogin = async (formInstance) => {
         .then((res) => {
           const { token, user } = res;
           ElMessage.success('你好，' + user.name + '，欢迎登录SecNote');
-          setUserInfo(user);
-          localStorage.setItem('token', token);
-
+          setToken(token, form.value.rememberMe);
           const currentEmail = form.value.email;
           let history = [...emailHistory.value];
           history = history.filter((email) => email !== currentEmail);
@@ -114,7 +114,7 @@ const handleLogin = async (formInstance) => {
           }
           emailHistory.value = history;
           localStorage.setItem(EMAIL_HISTORY_KEY, JSON.stringify(history));
-          router.push('/');
+          router.push('/home');
         })
         .catch((error) => {
           console.error('登录失败:', error);
@@ -168,10 +168,10 @@ const handleEmailSelect = (item) => {
 </script>
 
 <style scoped>
-.register-button-container {
-  margin-top: 8px;
-  text-align: right;
+.remember-me-container {
   width: 100%;
+  display: flex;
+  flex-direction: row-reverse;
 }
 .login-title {
   font-weight: bold;

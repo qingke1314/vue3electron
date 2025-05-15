@@ -12,7 +12,7 @@ const service = axios.create({
 service.interceptors.request.use(
   (config) => {
     // 在发送请求之前做些什么，例如添加 token
-    const token = localStorage.getItem('token');
+    const token = localStorage.getItem('token') || sessionStorage.getItem('token');
     if (token) {
       config.headers['Authorization'] = 'Bearer ' + token;
     }
@@ -59,6 +59,8 @@ service.interceptors.response.use(
         // 此处可以设置 center: true 让弹窗居中
       })
         .then(() => {
+          localStorage.removeItem('token'); // 清除 token
+          sessionStorage.removeItem('token'); // 清除 token
           router.push('/login');
         })
         .catch(() => {
