@@ -3,7 +3,7 @@
     <el-header class="common-header">
       <LoginHeader />
     </el-header>
-    <el-container>
+    <el-container style="overflow: hidden">
       <el-aside :width="asideWidth" class="common-aside">
         <side-menu :menu-items="menuConfig" />
       </el-aside>
@@ -49,8 +49,8 @@ const asideWidth = computed(() => {
     overflow-x: hidden; /* 防止折叠时出现水平滚动条 */
   }
   .common-main {
-    overflow: hidden;
     height: 100%;
+    overflow: hidden;
     padding: 12px; // 给主内容区一些内边距
     background-color: var(--el-bg-color-page);
   }
