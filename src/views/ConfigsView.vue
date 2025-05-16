@@ -16,7 +16,7 @@
             </el-avatar>
             <el-upload
               name="avatarFile"
-              action="gateway/users/upload-avatar"
+              :action="`${baseURL}/users/upload-avatar`"
               :show-file-list="false"
               :headers="{
                 Authorization: `Bearer ${token}`,
@@ -163,6 +163,7 @@ import { User, Message, Phone, Edit } from '@element-plus/icons-vue';
 import router from '@/router'; // 导入 router 实例/ 导入 ElMessage 和 ElMessageBox
 import { storeToRefs } from 'pinia';
 
+const baseURL = import.meta.env.VITE_API_BASE_URL;
 const usersStore = useUsersStore();
 const defaultAvatar = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png'; // 默认头像
 
