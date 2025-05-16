@@ -11,7 +11,7 @@
         <router-view />
       </el-main>
     </el-container>
-    <el-footer class="common-footer"></el-footer>
+    <el-footer v-if="false" class="common-footer"></el-footer>
   </el-container>
 </template>
 
@@ -34,7 +34,11 @@ const asideWidth = computed(() => {
 .common-layout {
   height: 100vh;
   .common-header {
-    background-image: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background-image: linear-gradient(
+      135deg,
+      var(--el-color-primary-light-9) 0%,
+      var(--el-color-primary-light-7) 100%
+    );
     // 添加一些内边距和文本样式，使其看起来更像页眉
     padding: 0 20px;
     display: flex;

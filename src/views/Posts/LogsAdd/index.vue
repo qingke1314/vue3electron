@@ -92,6 +92,6 @@ const handlePublish = (type) => {
 }
 .editor-container {
   width: 100%;
-  height: calc(100vh - 210px);
+  height: calc(100vh - 190px);
 }
 </style>

@@ -3,7 +3,6 @@ import { createPinia } from 'pinia';
 import { ElMessage, ElMessageBox } from 'element-plus';
 import App from './App.vue';
 import router from './router';
-
 import './style.css';
 
 const pinia = createPinia();

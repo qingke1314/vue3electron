@@ -194,7 +194,7 @@ const handleDelete = async (log) => {
 }
 .logs-list-container {
   background-color: var(--el-bg-color-page, #f0f2f5);
-  height: calc(100vh - 135px);
+  height: calc(100vh - 115px);
   overflow-y: auto;
   overflow-x: hidden;
   padding: 12px;

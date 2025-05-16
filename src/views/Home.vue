@@ -10,7 +10,7 @@
         class="search-input"
       />
       <el-button type="primary" @click="createNewNote">
-        <el-icon style="margin-right: 5px"><Plus /></el-icon>新建笔记
+        <el-icon style="margin-right: 5px"><Plus /></el-icon>新建日志
       </el-button>
       <el-button type="primary" @click="handleViewList">
         <el-icon style="margin-right: 5px"><Notebook /></el-icon>日志列表
@@ -141,7 +141,7 @@ const filteredNotes = computed(() => {
 const router = useRouter();
 
 const createNewNote = () => {
-  router.push('/editor');
+  router.push('/logs/add');
 };
 
 const openNote = (note) => {
@@ -182,7 +182,7 @@ const formatTime = (dateString) => {
 
 <style scoped>
 .home-container {
-  height: calc(100vh - 150px);
+  height: calc(100vh - 130px);
   display: flex;
   flex-direction: column;
   padding: 20px;

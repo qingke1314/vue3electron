@@ -236,7 +236,7 @@ const goBack = () => {
 .log-detail-container {
   padding: 0;
   background-color: var(--el-bg-color-page, #f0f2f5);
-  height: calc(100vh - 130px); /* 减去可能的头部和页头高度 */
+  height: calc(100vh - 110px); /* 减去可能的头部和页头高度 */
   overflow: auto;
 }
 .log-detail-header {

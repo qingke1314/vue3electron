@@ -142,6 +142,6 @@ onMounted(() => {
 
 .editor-container {
   width: 100%;
-  height: calc(100vh - 250px);
+  height: calc(100vh - 230px);
 }
 </style>

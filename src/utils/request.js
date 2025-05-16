@@ -1,5 +1,6 @@
 import axios from 'axios';
 import router from '@/router'; // 导入你的 Vue Router 实例
+import { useUsersStore } from '@/pinia/users';
 
 const baseURL = import.meta.env.VITE_API_BASE_URL;
 // 创建 Axios 实例
@@ -59,8 +60,7 @@ service.interceptors.response.use(
         // 此处可以设置 center: true 让弹窗居中
       })
         .then(() => {
-          localStorage.removeItem('token'); // 清除 token
-          sessionStorage.removeItem('token'); // 清除 token
+          useUsersStore().logout();
           router.push('/login');
         })
         .catch(() => {

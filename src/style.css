@@ -4,19 +4,64 @@ body {
   box-sizing: border-box;
 }
 
-:root {
+html[data-theme='default'] {
   --el-color-primary: rgb(137 162 201);
   --el-color-primary-light-9: rgb(237, 242, 255);
   --el-color-primary-light-7: rgb(183 195 213);
   --el-color-primary-light-5: rgb(156 160 167);
   --el-color-primary-light-3: rgb(110, 128, 167);
   --el-color-primary-light-1: rgb(111, 124, 146);
-  /*
-    --el-color-primary: rgb(90, 155, 90);
+  /* Add other variables specific to the default theme if any */
+}
+
+html[data-theme='green'] {
+  --el-color-primary: rgb(90, 155, 90);
   --el-color-primary-light-9: rgb(199, 214, 199);
   --el-color-primary-light-7: rgb(151, 184, 151);
   --el-color-primary-light-5: rgb(102, 139, 102);
   --el-color-primary-light-3: rgb(59, 95, 59);
   --el-color-primary-light-1: rgb(54, 90, 54);
-  */
+  /* Add other variables specific to the green theme if any */
 }
+
+html[data-theme='red'] {
+  --el-color-primary: rgb(217, 83, 79);
+  --el-color-primary-light-9: rgb(253, 237, 237);
+  --el-color-primary-light-7: rgb(243, 196, 194);
+  --el-color-primary-light-5: rgb(230, 152, 149);
+  --el-color-primary-light-3: rgb(220, 117, 114);
+  --el-color-primary-light-1: rgb(196, 74, 70);
+}
+
+html[data-theme='purple'] {
+  --el-color-primary: rgb(153, 102, 204);
+  --el-color-primary-light-9: rgb(243, 238, 249);
+  --el-color-primary-light-7: rgb(213, 194, 230);
+  --el-color-primary-light-5: rgb(183, 153, 217);
+  --el-color-primary-light-3: rgb(168, 127, 210);
+  --el-color-primary-light-1: rgb(137, 91, 183);
+}
+
+html[data-theme='orange'] {
+  --el-color-primary: rgb(240, 173, 78);
+  --el-color-primary-light-9: rgb(254, 246, 236);
+  --el-color-primary-light-7: rgb(248, 223, 188);
+  --el-color-primary-light-5: rgb(245, 200, 139);
+  --el-color-primary-light-3: rgb(242, 186, 107);
+  --el-color-primary-light-1: rgb(224, 160, 72);
+}
+
+html[data-theme='black'] {
+  --el-color-primary: rgb(0, 0, 0);
+  --el-color-primary-light-9: rgb(224, 224, 224);
+  --el-color-primary-light-7: rgb(192, 192, 192);
+  --el-color-primary-light-5: rgb(160, 160, 160);
+  --el-color-primary-light-3: rgb(128, 128, 128);
+  --el-color-primary-light-1: rgb(64, 64, 64);
+}
+
+/* You might want to set a default theme if JS is disabled or before it runs */
+/* This can be done by setting data-theme on the html tag directly in your index.html,
+  or by ensuring one of the theme blocks above applies by default if no data-theme is set.
+  However, for dynamic switching, JS will handle this.
+*/

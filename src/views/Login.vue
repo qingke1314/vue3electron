@@ -17,10 +17,17 @@
         <el-form-item v-if="loginType == LOGIN_TYPE.REGISTER" label="" prop="username">
           <el-input placeholder="昵称(可选)" v-model="form.username" />
         </el-form-item>
+        <el-form-item v-if="loginType == LOGIN_TYPE.REGISTER" label="" prop="prePassword">
+          <el-input
+            type="password"
+            v-model="form.prePassword"
+            placeholder="请输入密码（6-20位，可包含字母、数字、下划线、@、#、$、%、^、&、*、()、.）"
+          />
+        </el-form-item>
         <el-form-item label="" prop="password">
           <el-input
             @keyup.enter="handleLogin(formRef)"
-            placeholder="密码"
+            :placeholder="loginType == LOGIN_TYPE.LOGIN ? '密码' : '再次确认密码'"
             v-model="form.password"
             type="password"
           />
@@ -65,8 +72,34 @@ const form = ref({
   email: '',
   password: '',
   username: '',
+  prePassword: '',
   rememberMe: false,
 });
+const validatePass = (rule, value, callback) => {
+  if (value === '') {
+    callback(new Error('请输入密码'));
+  } else {
+    // 密码复杂度校验示例：6-20位，字母、数字、下划线
+    if (!/^[a-zA-Z0-9_@#$%^&*()\.]{6,20}$/.test(value)) {
+      callback(new Error('密码必须为6-20位，可包含字母、数字、下划线、@、#、$、%、^、&、*、()、.'));
+    } else {
+      callback();
+    }
+  }
+};
+const validateConfirmPass = (rule, value, callback) => {
+  if (loginType.value == LOGIN_TYPE.REGISTER) {
+    if (value === '') {
+      callback(new Error('请再次输入密码'));
+    } else if (value !== form.value.prePassword) {
+      callback(new Error('两次输入的密码不一致!'));
+    } else {
+      callback();
+    }
+  } else {
+    return validatePass(rule, value, callback);
+  }
+};
 const usersStore = useUsersStore();
 const { setUserInfo, setToken } = usersStore;
 
@@ -86,7 +119,11 @@ const rules = ref({
     { required: true, message: '请输入邮箱', trigger: 'blur' },
     { type: 'email', message: '请输入正确的邮箱地址', trigger: ['blur', 'change'] },
   ],
-  password: [{ required: true, message: '请输入密码', trigger: 'blur' }],
+  password: [
+    { required: true, message: '请输入密码', trigger: 'blur' },
+    { validator: validateConfirmPass, trigger: 'blur' },
+  ],
+  prePassword: [{ validator: validatePass, trigger: 'blur' }],
 });
 
 const handleLogin = async (formInstance) => {

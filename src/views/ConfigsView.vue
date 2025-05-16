@@ -4,6 +4,37 @@
       <el-descriptions label-width="120px" :column="1" border>
         <el-descriptions-item label-align="center" align="left">
           <template #label
+            ><el-icon><User /></el-icon> 头像</template
+          >
+          <div class="avatar-container">
+            <el-avatar
+              :size="60"
+              :src="usersStore.userInfo?.avatar || defaultAvatar"
+              @error="() => true"
+            >
+              <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
+            </el-avatar>
+            <el-upload
+              name="avatarFile"
+              action="gateway/users/upload-avatar"
+              :show-file-list="false"
+              :headers="{
+                Authorization: `Bearer ${token}`,
+              }"
+              :on-success="handleAvatarSuccess"
+              :before-upload="beforeAvatarUpload"
+              class="avatar-uploader"
+              accept="image/png, image/jpeg, image/gif"
+            >
+              <el-button type="primary" link icon="Edit" class="edit-avatar-btn"
+                >修改头像</el-button
+              >
+            </el-upload>
+          </div>
+        </el-descriptions-item>
+
+        <el-descriptions-item label-align="center" align="left">
+          <template #label
             ><el-icon><User /></el-icon> 昵称</template
           >
           {{ usersStore.userInfo?.name || '未设置' }}
@@ -77,7 +108,7 @@
     <el-dialog
       v-model="passwordDialogVisible"
       title="修改密码"
-      width="450px"
+      width="640px"
       @close="handlePasswordCancel"
       draggable
     >
@@ -99,7 +130,7 @@
           <el-input
             type="password"
             v-model="passwordForm.newPassword"
-            placeholder="请输入新密码（6-20位字母、数字或下划线）"
+            placeholder="请输入新密码（6-20位，可包含字母、数字、下划线、@、#、$、%、^、&、*、()、.）"
             show-password
           />
         </el-form-item>
@@ -128,11 +159,14 @@
 import { ref, computed } from 'vue';
 import { useUsersStore } from '@/pinia/users';
 import { updateCurrentUserProfile, updateUserPassword } from '@/apis/users'; // 假设 updateUserPassword 也在 users API中
-import { ElMessage } from 'element-plus';
 import { User, Message, Phone, Edit } from '@element-plus/icons-vue';
-import router from '@/router'; // 导入 router 实例
+import router from '@/router'; // 导入 router 实例/ 导入 ElMessage 和 ElMessageBox
+import { storeToRefs } from 'pinia';
 
 const usersStore = useUsersStore();
+const defaultAvatar = 'https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png'; // 默认头像
+
+const { token } = storeToRefs(usersStore);
 
 // 个人信息编辑相关
 const dialogVisible = ref(false);
@@ -189,8 +223,8 @@ const validatePass = (rule, value, callback) => {
       passwordFormRef.value.validateField('confirmPassword', () => null);
     }
     // 密码复杂度校验示例：6-20位，字母、数字、下划线
-    if (!/^[a-zA-Z0-9_]{6,20}$/.test(value)) {
-      callback(new Error('密码必须为6-20位，可包含字母、数字或下划线'));
+    if (!/^[a-zA-Z0-9_@#$%^&*()\.]{6,20}$/.test(value)) {
+      callback(new Error('密码必须为6-20位，可包含字母、数字、下划线、@、#、$、%、^、&、*、()、.'));
     } else {
       callback();
     }
@@ -279,22 +313,63 @@ const handlePasswordSave = async () => {
           oldPassword: passwordForm.value.oldPassword,
           newPassword: passwordForm.value.newPassword,
         });
-        ElMessage.success('密码修改成功，请重新登录。');
-        handlePasswordCancel(); // 关闭弹窗并重置表单
-
-        usersStore.logout(); // 使用 store action 清理状态并标记为登出
-        router.push('/login'); // 使用导入的 router 实例进行跳转
+        ElMessageBox.confirm('密码修改成功，请重新登录。', '提示', {
+          confirmButtonText: '确定',
+          cancelButtonText: '取消',
+          type: 'warning',
+        }).then(() => {
+          usersStore.logout();
+          router.push('/login');
+        });
       } catch (error) {
         console.error('修改密码失败:', error);
-        ElMessage.error(
-          error.response?.data?.message || error.message || '修改密码失败，请检查旧密码或联系管理员'
-        );
-      } finally {
-        savingPassword.value = false;
       }
     }
   });
 };
+
+// --- 头像上传处理 ---
+const handleAvatarSuccess = async (response, uploadFile) => {
+  // 假设后端返回的 response 格式为 { success: boolean, data: { url: string }, message?: string }
+  // 或者直接是 { url: string } 且 HTTP 状态码为 200
+  // 这里我们简单处理，具体根据你的后端API调整
+  let newAvatarUrl = '';
+  if (response && response.data && response.data.url) {
+    // 对应 { success: true, data: { url: '...' } }
+    newAvatarUrl = response.data.url;
+  } else if (response && response.url) {
+    // 对应直接返回 { url: '...' }
+    newAvatarUrl = response.url;
+  } else {
+    ElMessage.error(response.message || '头像上传失败，响应格式不正确');
+    return;
+  }
+
+  try {
+    await updateCurrentUserProfile({ avatar: newAvatarUrl });
+    usersStore.updateUserProfile({ avatar: newAvatarUrl });
+    ElMessage.success('头像更新成功');
+  } catch (error) {
+    console.error('更新头像信息失败:', error);
+    ElMessage.error(error.message || '更新头像失败，请稍后再试');
+  }
+};
+
+const beforeAvatarUpload = (rawFile) => {
+  const isImage = ['image/jpeg', 'image/png', 'image/gif'].includes(rawFile.type);
+  const isLt2M = rawFile.size / 1024 / 1024 < 2;
+
+  if (!isImage) {
+    ElMessage.error('头像图片只能是 JPG/PNG/GIF 格式!');
+    return false;
+  }
+  if (!isLt2M) {
+    ElMessage.error('头像图片大小不能超过 2MB!');
+    return false;
+  }
+  return true;
+};
+// --- END 头像上传处理 ---
 </script>
 
 <style lang="scss" scoped>
@@ -340,5 +415,18 @@ const handlePasswordSave = async () => {
 // 弹窗内表单样式，如果需要微调
 .el-dialog .el-form-item {
   margin-bottom: 22px; // 保持合适的间距
+}
+
+.avatar-container {
+  display: flex;
+  align-items: center;
+}
+
+.avatar-uploader {
+  margin-left: 20px;
+}
+
+.edit-avatar-btn {
+  margin-left: 0; // 重置按钮边距，因为已经有 uploader 的边距
 }
 </style>

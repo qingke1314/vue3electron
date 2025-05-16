@@ -2,8 +2,15 @@
   <div class="login-header">
     <div class="logo"></div>
     <div class="user-info">
+      <el-avatar :size="40" :src="userInfo?.avatar" @error="() => true" class="user-avatar">
+        <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
+      </el-avatar>
       <div class="user-name">你好，{{ userInfo?.name }}</div>
-      <el-dropdown @command="handleCommand">
+
+      <!-- 添加主题切换器组件 -->
+      <theme-switcher />
+
+      <el-dropdown @command="handleCommand" class="user-actions-dropdown">
         <span>
           <el-icon :size="20" class="el-icon--right">
             <More class="user-icon" />
@@ -25,10 +32,12 @@
 </template>
 
 <script setup>
+import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
 import { More, SwitchButton } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { useUsersStore } from '@/pinia/users';
 import { storeToRefs } from 'pinia';
+import { ElMessageBox, ElMessage } from 'element-plus';
 
 const router = useRouter();
 const usersStore = useUsersStore();
@@ -42,10 +51,15 @@ const handleCommand = (command) => {
         confirmButtonText: '确定',
         cancelButtonText: '取消',
         type: 'warning',
-      }).then(() => {
-        logout();
-        router.push('/login');
-      });
+      })
+        .then(() => {
+          logout();
+          router.push('/login');
+        })
+        .catch(() => {
+          // 用户取消登出，可以根据需要添加提示，例如：
+          // ElMessage.info('已取消登出');
+        });
       break;
     default:
       break;
@@ -70,6 +84,10 @@ const handleCommand = (command) => {
   display: flex;
   align-items: center;
 }
+.user-avatar {
+  margin-right: 8px;
+  border: 1px solid #eee;
+}
 .user-name {
   color: #333;
   margin-right: 10px;
@@ -78,5 +96,8 @@ const handleCommand = (command) => {
   cursor: pointer;
   transform: translateY(2px);
   color: #444;
+}
+.user-actions-dropdown {
+  margin-left: 10px;
 }
 </style>

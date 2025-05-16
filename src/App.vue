@@ -6,6 +6,7 @@
 </template>
 
 <script>
+import { useTheme } from '@/composables/useTheme';
 import { defineComponent } from 'vue';
 import { ElConfigProvider } from 'element-plus';
 import Layout from './components/Layout.vue';
@@ -18,6 +19,7 @@ export default defineComponent({
     AppUpdater,
   },
   setup() {
+    useTheme(); // 这将自动处理主题的加载
     return {
       zIndex: 3000,
       size: 'small',
