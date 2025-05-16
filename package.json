@@ -6,7 +6,7 @@
   "author": "Sec <1774079811@qq.com>",
   "description": "您的云笔记小窝",
   "scripts": {
-    "build": "vue-tsc && vite build && electron-builder && node build/js/upload.js",
+    "build": "npm version prerelease && vue-tsc && vite build && electron-builder && node build/js/upload.js",
     "dev": "vite",
     "preview": "vite preview",
     "upload": "node build/js/upload.js"
