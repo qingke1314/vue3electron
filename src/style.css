@@ -2,6 +2,7 @@ body {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
+  color: var(--el-text-color-primary);
 }
 
 html[data-theme='default'] {
@@ -53,7 +54,7 @@ html[data-theme='orange'] {
 
 html[data-theme='black'] {
   --el-color-primary: rgb(0, 0, 0);
-  --el-color-primary-light-9: rgb(224, 224, 224);
+  --el-color-primary-light-9: rgb(243, 243, 243);
   --el-color-primary-light-7: rgb(192, 192, 192);
   --el-color-primary-light-5: rgb(160, 160, 160);
   --el-color-primary-light-3: rgb(128, 128, 128);
@@ -65,3 +66,31 @@ html[data-theme='black'] {
   or by ensuring one of the theme blocks above applies by default if no data-theme is set.
   However, for dynamic switching, JS will handle this.
 */
+
+/* 全局滚动条样式 */
+::-webkit-scrollbar {
+  width: 8px; /* 滚动条宽度 */
+  height: 8px; /* 滚动条高度，主要用于横向滚动条 */
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1; /* 滚动条轨道背景色 */
+  border-radius: 10px; /* 轨道圆角 */
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--el-color-primary-light-7); /* 滚动条滑块颜色 */
+  border-radius: 10px; /* 滑块圆角 */
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--el-color-primary-light-5); /* 鼠标悬停时滑块颜色 */
+}
+
+/* 对于 Firefox */
+/* Firefox 目前不支持通过 CSS 直接自定义滚动条的圆角和厚度，但可以改变颜色 */
+/* 可以通过设置 scrollbar-width 和 scrollbar-color 来进行有限的自定义 */
+* {
+  scrollbar-width: thin; /* "auto" or "thin" */
+  scrollbar-color: var(--el-color-primary-light-7) var(--el-color-primary-light-9); /* thumb_color track_color */
+}

@@ -32,7 +32,7 @@
           </el-menu-item>
           <el-menu-item index="recent">
             <el-icon><Clock /></el-icon>
-            <span>最近编辑</span>
+            <span>最新日志</span>
           </el-menu-item>
         </el-menu>
       </div>
@@ -90,7 +90,7 @@ import { Star, Clock, Plus, Edit, Notebook, View, StarFilled } from '@element-pl
 
 // 状态定义
 const searchQuery = ref('');
-const activeCategory = ref('recent');
+const activeCategory = ref('favorite');
 const notes = ref([]);
 
 onMounted(() => {

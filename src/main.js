@@ -4,6 +4,7 @@ import { ElMessage, ElMessageBox } from 'element-plus';
 import App from './App.vue';
 import router from './router';
 import './style.css';
+import './styles/element/index.scss';
 
 const pinia = createPinia();
 const app = createApp(App);
