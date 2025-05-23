@@ -15,7 +15,7 @@
               <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
             </el-avatar>
             <el-upload
-              name="avatarFile"
+              name="file"
               :action="`${baseURL}/users/upload-avatar`"
               :show-file-list="false"
               :headers="{

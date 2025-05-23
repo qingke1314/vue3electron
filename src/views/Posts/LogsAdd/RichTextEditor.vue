@@ -47,7 +47,7 @@ const mergedInitOptions = computed(() => {
         const formData = new FormData();
         formData.append('file', blobInfo.blob(), blobInfo.filename());
         axios
-          .post(`${baseURL}/api/upload-image-custom`, formData, {
+          .post(`${baseURL}/posts/upload-image-custom`, formData, {
             headers: {
               'Content-Type': 'multipart/form-data', // 重要，代表上传文件
               // 添加认证头

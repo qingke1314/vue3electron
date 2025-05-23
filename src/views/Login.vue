@@ -139,7 +139,7 @@ const handleLogin = async (formInstance) => {
         password: form.value.password,
       })
         .then((res) => {
-          const { token, user } = res;
+          const { token, user } = res?.data || {};
           ElMessage.success('你好，' + user.name + '，欢迎登录SecNote');
           setToken(token, form.value.rememberMe);
           const currentEmail = form.value.email;
