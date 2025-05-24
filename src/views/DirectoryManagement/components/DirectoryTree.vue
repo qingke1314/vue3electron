@@ -30,7 +30,7 @@
       <template #default="{ node, data }">
         <span class="custom-tree-node">
           <!-- 根据节点类型显示不同图标 -->
-          <el-icon style="margin-right: 5px;" :color="getNodeIconColor(node, data)">
+          <el-icon style="margin-right: 5px;" color="var(--el-color-primary)">
             <Folder v-if="!node.isLeaf || (data.children && data.children.length > 0)" />
             <Document v-else />
           </el-icon>
@@ -89,17 +89,6 @@ const contextMenuPosition = computed(() => ({
   top: `${contextMenu.y}px`,
   left: `${contextMenu.x}px`,
 }));
-
-// Function to determine icon color based on node type
-const getNodeIconColor = (node, data) => {
-  const isDirectory = !node.isLeaf || (data.children && data.children.length > 0);
-  if (isDirectory) {
-    return '#FFC107'; // Example: Yellow for folders (like anila folder color)
-  } else {
-    return '#409EFF'; // Example: Blue for documents (Element Plus primary color)
-  }
-  // You can add more conditions, e.g., based on data.type or other properties
-};
 
 // 模拟获取目录数据
 const fetchTreeData = async () => {

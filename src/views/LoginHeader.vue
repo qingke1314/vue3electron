@@ -1,6 +1,11 @@
 <template>
   <div class="login-header">
-    <div class="logo"></div>
+    <div class="left-controls">
+      <el-icon :size="20" @click="toggleMenuVisibility" class="menu-toggle-icon">
+        <component :is="isMenuVisible ? Fold : Expand" />
+      </el-icon>
+      <div class="logo"></div>
+    </div>
     <div class="user-info">
       <el-avatar :size="40" :src="userInfo?.avatar" @error="() => true" class="user-avatar">
         <img src="https://cube.elemecdn.com/e/fd/0fc7d20532fdaf769a25683617711png.png" />
@@ -33,16 +38,22 @@
 
 <script setup>
 import ThemeSwitcher from '@/components/ThemeSwitcher.vue';
-import { More, SwitchButton } from '@element-plus/icons-vue';
+import { More, SwitchButton, Fold, Expand } from '@element-plus/icons-vue';
 import { useRouter } from 'vue-router';
 import { useUsersStore } from '@/pinia/users';
 import { storeToRefs } from 'pinia';
 import { ElMessageBox, ElMessage } from 'element-plus';
+import { useLayoutStore } from '@/pinia/layout';
+import { computed } from 'vue';
 
 const router = useRouter();
 const usersStore = useUsersStore();
 const { userInfo } = storeToRefs(usersStore);
 const { logout } = usersStore;
+
+const layoutStore = useLayoutStore();
+const { isMenuVisible } = storeToRefs(layoutStore);
+const { toggleMenuVisibility } = layoutStore;
 
 const handleCommand = (command) => {
   switch (command) {
@@ -74,6 +85,18 @@ const handleCommand = (command) => {
   justify-content: space-between;
   align-items: center;
 }
+
+.left-controls {
+  display: flex;
+  align-items: center;
+}
+
+.menu-toggle-icon {
+  margin-right: 15px;
+  cursor: pointer;
+  color: var(--el-color-primary);
+}
+
 .logo {
   font-size: 20px;
   font-weight: bold;

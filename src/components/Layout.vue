@@ -4,7 +4,7 @@
       <LoginHeader />
     </el-header>
     <el-container style="overflow: hidden">
-      <el-aside :width="asideWidth" class="common-aside">
+      <el-aside :width="asideWidth" class="common-aside" v-show="isMenuVisible">
         <side-menu :menu-items="menuConfig" />
       </el-aside>
       <el-main class="common-main">
@@ -23,7 +23,8 @@ import { menuConfig } from '@/utils/const';
 import LoginHeader from '@/views/LoginHeader.vue';
 import SideMenu from './SideMenu.vue';
 
-const { isCollapse } = storeToRefs(useLayoutStore());
+const layoutStore = useLayoutStore(); // 获取 layout store 实例
+const { isCollapse, isMenuVisible } = storeToRefs(layoutStore); // 解构 isMenuVisible
 
 const asideWidth = computed(() => {
   return isCollapse.value ? '64px' : '200px';
@@ -46,11 +47,14 @@ const asideWidth = computed(() => {
     color: var(--el-text-color-primary);
   }
   .common-aside {
-    transition: width 0.3s;
+    transition: width 0.3s ease-in-out;
     // background-color: var(--el-color-primary-light-9);
     // 确保侧边栏内容不会溢出，如果菜单很长，可以考虑滚动条
     overflow-y: auto;
     overflow-x: hidden; /* 防止折叠时出现水平滚动条 */
+    // 注意：当使用 transform 进行滑动动画时，如果父容器有 overflow: hidden，
+    // 可能需要确保 el-aside 本身在动画过程中不会被立即裁剪。
+    // 不过对于 translateX(-100%)，通常是可行的。
   }
   .common-main {
     height: 100%;
@@ -79,4 +83,6 @@ const asideWidth = computed(() => {
   left: 100px;
   top: 60px;
 }
+
+// .menu-slide-enter-to 和 .menu-slide-leave-from 默认是 transform: translateX(0) 和 opacity: 1
 </style>
