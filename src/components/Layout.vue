@@ -4,7 +4,7 @@
       <LoginHeader />
     </el-header>
     <el-container style="overflow: hidden">
-      <el-aside v-show="showMenu" :width="asideWidth" class="common-aside">
+      <el-aside :width="asideWidth" class="common-aside">
         <side-menu :menu-items="menuConfig" />
       </el-aside>
       <el-main class="common-main">
@@ -23,8 +23,7 @@ import { menuConfig } from '@/utils/const';
 import LoginHeader from '@/views/LoginHeader.vue';
 import SideMenu from './SideMenu.vue';
 
-const layoutStore = useLayoutStore();
-const { isCollapse, showMenu } = storeToRefs(layoutStore);
+const { isCollapse } = storeToRefs(useLayoutStore());
 
 const asideWidth = computed(() => {
   return isCollapse.value ? '64px' : '200px';
