@@ -8,6 +8,7 @@ import {
   Tickets,
   DocumentAdd,
   Files,
+  Folder,
 } from '@element-plus/icons-vue';
 
 export const iconMap = {
@@ -20,6 +21,7 @@ export const iconMap = {
   Memo,
   DocumentAdd,
   Files,
+  Folder,
 };
 
 export const menuConfig = [
@@ -27,6 +29,22 @@ export const menuConfig = [
     name: '首页',
     path: '/',
     icon: 'HomeFilled', // 假设你已经全局注册了 Element Plus 图标
+  },
+  {
+    name: '目录管理',
+    icon: 'Folder',
+    children: [
+      {
+        name: '目录概览',
+        path: '/directory-management/overview',
+        icon: 'Files',
+      },
+      {
+        name: '目录配置',
+        path: '/directory-management/config',
+        icon: 'Memo',
+      },
+    ],
   },
   {
     name: '日志管理',
@@ -45,28 +63,6 @@ export const menuConfig = [
       },
     ],
   },
-  // {
-  //   name: '创意管理',
-  //   path: '/ideas',
-  //   icon: 'Opportunity',
-  // },
-  // {
-  //   name: '错题集',
-  //   // path: '/errors', // 父菜单可以没有path，如果它仅用于展开
-  //   icon: 'CollectionTag',
-  //   children: [
-  //     {
-  //       name: '前端错题',
-  //       path: '/errors',
-  //       icon: 'Tickets',
-  //     },
-  //     // {
-  //     //   name: "后端错题",
-  //     //   path: "/errors/backend",
-  //     //   // icon: 'DataLine'
-  //     // },
-  //   ],
-  // },
   {
     name: '个人信息',
     path: '/configs',

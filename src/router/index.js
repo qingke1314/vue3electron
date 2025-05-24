@@ -16,6 +16,25 @@ const routes = [
         meta: { requiresAuth: true },
       },
       {
+        path: '/directory-management',
+        name: 'DirectoryManagement',
+        meta: { requiresAuth: true },
+        children: [
+          {
+            path: 'config',
+            name: 'DirectoryConfig',
+            component: () => import('../views/DirectoryManagement/DirectoryManagement.vue'),
+            meta: { requiresAuth: true },
+          },
+          {
+            path: 'overview',
+            name: 'DirectoryOverview',
+            component: () => import('../views/DirectoryList/DirectoryListPage.vue'),
+            meta: { requiresAuth: true },
+          },
+        ],
+      },
+      {
         path: '/logs',
         name: 'Logs',
         meta: { requiresAuth: true },
@@ -28,9 +47,16 @@ const routes = [
           },
           {
             path: '/logs/list',
-            name: 'LogsList',
+            name: 'LogsListAll',
             component: () => import('../views/Posts/LogsList/index.vue'),
             meta: { requiresAuth: true }, // 假设此页面需要登录
+          },
+          {
+            path: '/logs/list/dir/:directoryId',
+            name: 'LogsListByDirectory',
+            component: () => import('../views/Posts/LogsList/index.vue'),
+            props: true, // 将路由参数 directoryId 作为 prop 传递给组件
+            meta: { requiresAuth: true },
           },
           {
             path: '/logs/editor/:id',
