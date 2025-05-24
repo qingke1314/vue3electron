@@ -68,36 +68,12 @@ const goBack = () => {
 const getData = () => {
   loading.value = true;
   const params = {};
-  if (props.directoryId) {
-    params.directoryId = props.directoryId;
-    console.log(`Fetching logs for directory: ${props.directoryId}`);
-  } else {
-    console.log('Fetching all logs (no directoryId provided)');
-  }
-
-  let tempLogs = [];
-  if (params.directoryId === 'dir_001') {
-      tempLogs = [
-          { id: 'log_d1_1', title: '工作日志A from Dir 001', authorName: '张三', published: true, createdAt: new Date(), content: '内容A', isUserOwner: true },
-          { id: 'log_d1_2', title: '工作报告B from Dir 001', authorName: '李四', published: false, createdAt: new Date(), content: '内容B', isUserOwner: false },
-      ];
-  } else if (params.directoryId) {
-    tempLogs = [
-        { id: `log_${params.directoryId}_1`, title: `特定目录 ${params.directoryId} 的日志 1`, authorName: '王五', published: true, createdAt: new Date(), content: '特定内容1', isUserOwner: true },
-    ];
-  } else {
-    tempLogs = [
-        { id: 'log_all_1', title: '全部日志 - 文章1', authorName: '赵六', published: true, createdAt: new Date(), content: '这是全部日志中的一篇...', isUserOwner: true },
-        { id: 'log_all_2', title: '全部日志 - 草稿2', authorName: '孙七', published: false, createdAt: new Date(), content: '这是另一篇草稿...', isUserOwner: true },
-    ];
-  }
-
-  new Promise(resolve => setTimeout(() => resolve(tempLogs), 300))
+  getPosts(params)
     .then((res) => {
       logs.value = res.map((post) => ({
         ...post,
         title: post.title || '无标题',
-        authorName: post.author?.name || post.authorName || '未知作者',
+        authorName: post.author?.name || '未知作者',
         publishDate: post.createdAt ? new Date(post.createdAt).toLocaleString() : '未知日期',
         previewText: post.previewText || post.content?.substring(0, 100) + '...' || '暂无内容预览',
       }));

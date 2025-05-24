@@ -94,9 +94,9 @@ const contextMenuPosition = computed(() => ({
 const getNodeIconColor = (node, data) => {
   const isDirectory = !node.isLeaf || (data.children && data.children.length > 0);
   if (isDirectory) {
-    return '#FFC107'; // Example: Yellow for folders (like anila folder color)
+    return 'var(--el-color-primary)'; // Example: Yellow for folders (like anila folder color)
   } else {
-    return '#409EFF'; // Example: Blue for documents (Element Plus primary color)
+    return 'var(--el-color-primary)'; // Example: Blue for documents (Element Plus primary color)
   }
   // You can add more conditions, e.g., based on data.type or other properties
 };
