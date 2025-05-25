@@ -1,16 +1,27 @@
 <template>
   <div class="tree-container">
-    <el-input
-      size="default"
-      v-model="filterTextTree"
-      placeholder="筛选目录或日志"
-      clearable
-      class="filter-input"
-      :suffix-icon="Search"
-    />
+    <div class="filter-input">
+      <el-input
+        size="default"
+        v-model="filterTextTree"
+        placeholder="筛选目录或日志"
+        clearable
+        :suffix-icon="Search"
+      />
+      <el-tooltip
+        class="box-item"
+        effect="dark"
+        content="在根目录新增"
+        placement="top"
+      >
+        <el-icon class="add-icon" @click="handleAdd()">
+          <Plus />
+        </el-icon>
+      </el-tooltip>
+    </div>
     <el-tree
-      ref="treeRef" 
-      style="height: calc(100% - 40px);" 
+      ref="treeRef"
+      style="height: calc(100% - 40px)"
       :data="treeData"
       :props="defaultProps"
       node-key="id"
@@ -30,7 +41,7 @@
       <template #default="{ node, data }">
         <span class="custom-tree-node">
           <!-- 根据节点类型显示不同图标 -->
-          <el-icon style="margin-right: 5px;" color="var(--el-color-primary)">
+          <el-icon style="margin-right: 5px" color="var(--el-color-primary)">
             <Folder v-if="!node.isLeaf || (data.children && data.children.length > 0)" />
             <Document v-else />
           </el-icon>
@@ -43,17 +54,25 @@
   <!-- 右键菜单 -->
   <div v-if="contextMenu.visible" :style="contextMenuPosition" class="context-menu">
     <ul class="menu-list">
-      <li @click="handleAdd(contextMenu.node, contextMenu.data)">新增</li>
-      <li @click="handleRename(contextMenu.node, contextMenu.data)">重命名</li>
-      <li @click="handleDelete(contextMenu.node, contextMenu.data)">删除</li>
+      <li @click="handleAdd(contextMenu.data)">
+        <el-icon><Plus /></el-icon> 新增
+      </li>
+      <li @click="handleRename(contextMenu.data)">
+        <el-icon><EditPen /></el-icon> 重命名
+      </li>
+      <li @click="handleDelete(contextMenu.node, contextMenu.data)">
+        <el-icon><Delete /></el-icon> 删除
+      </li>
     </ul>
   </div>
 </template>
 
 <script setup>
+import { getAllCategories, addCategory } from '@/apis/category';
 import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { ElMessageBox, ElMessage } from 'element-plus';
 // 导入 Element Plus 图标
-import { Folder, Document, Search } from '@element-plus/icons-vue';
+import { Folder, Document, Search, Plus, EditPen, Delete } from '@element-plus/icons-vue';
 
 const emit = defineEmits(['node-click']);
 
@@ -75,6 +94,7 @@ const filterNodeMethodTree = (value, data) => {
 const defaultProps = {
   children: 'children',
   label: 'label',
+  isLeaf: 'isLeaf'
 };
 
 const contextMenu = reactive({
@@ -90,45 +110,33 @@ const contextMenuPosition = computed(() => ({
   left: `${contextMenu.x}px`,
 }));
 
-// 模拟获取目录数据
-const fetchTreeData = async () => {
-  // 实际项目中，这里会调用API
-  return [
-    {
-      id: '1',
-      label: '目录 1',
-      children: [
-        {
-          id: '1-1',
-          label: '目录 1-1',
-          children: [
-            { id: '1-1-1', label: '日志 1-1-1' },
-            { id: '1-1-2', label: '日志 1-1-2' },
-          ],
-        },
-      ],
-    },
-    {
-      id: '2',
-      label: '目录 2',
-      children: [
-        { id: '2-1', label: '日志 2-1' },
-        { id: '2-2', label: '日志 2-2' },
-      ],
-    },
-    {
-      id: '3',
-      label: '空目录 3',
-    },
-    {
-      id: '4',
-      label: '顶级日志文件'
+const loopMapTreeData = (data) => {
+  return data.map((item) => {
+    if (item.children) {
+      item.children = loopMapTreeData(item.children);
     }
-  ];
+    return {
+      ...item,
+      id: item.id,
+      label: item.name,
+    };
+  });
+};
+
+const loadTreeData = async () => {
+  try {
+    const res = await getAllCategories();
+    // Ensure children is always an array, and map isLeaf correctly
+    treeData.value = loopMapTreeData(res || []);
+  } catch (error) {
+    ElMessage.error('加载目录数据失败');
+    console.error('Failed to fetch tree data:', error);
+    treeData.value = []; // Set to empty array on error
+  }
 };
 
 onMounted(async () => {
-  treeData.value = await fetchTreeData();
+  await loadTreeData();
   document.addEventListener('click', handleClickOutsideContextMenu);
 });
 
@@ -147,7 +155,8 @@ const handleNodeClick = (data) => {
   contextMenu.visible = false; // 点击节点时关闭右键菜单
 };
 
-const handleContextMenu = (event, data, node) => { // node 类型暂时为 any
+const handleContextMenu = (event, data, node) => {
+  // node 类型暂时为 any
   event.preventDefault();
   contextMenu.visible = true;
   contextMenu.x = event.clientX;
@@ -156,51 +165,87 @@ const handleContextMenu = (event, data, node) => { // node 类型暂时为 any
   contextMenu.data = data;
 };
 
-const handleAdd = (node, data) => { // node 类型暂时为 any
-  console.log('Add', data);
-  if (!data) return;
-  const newChild = { id: Date.now().toString(), label: '新目录', children: [] };
-  if (!data.children) {
-    data.children = [];
-  }
-  data.children.push(newChild);
-  treeData.value = [...treeData.value]; // 触发视图更新
+const handleAdd = async (data) => {
   contextMenu.visible = false;
-  // 此处应调用API保存新增
-  alert(`在"${data.label}"下新增目录`);
+  try {
+    const { value } = await ElMessageBox.prompt('请输入新增目录的名称', '新增目录', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputPattern: /\S/,
+      inputErrorMessage: '目录名称不能为空',
+    });
+    if (value) {
+      await addCategory({
+        name: value,
+        parentId: data ? data.id : null, // If data exists, it's a child, otherwise root
+      });
+      ElMessage.success('新增成功');
+      await loadTreeData(); // Reload data
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('新增失败');
+      console.error('Add failed:', error);
+    }
+  }
 };
 
-const handleRename = (node, data) => { // node 类型暂时为 any
-  console.log('Rename', data);
-  if (!data) return;
-  const newName = prompt('请输入新的目录名：', data.label);
-  if (newName && newName !== data.label) {
-    data.label = newName;
-    // 此处应调用API保存重命名
-    alert(`目录"${data.id}"重命名为"${newName}"`);
-  }
+const handleRename = async (data) => {
   contextMenu.visible = false;
+  if (!data) return;
+  try {
+    const { value } = await ElMessageBox.prompt('请输入新的目录名', '重命名', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      inputValue: data.label,
+      inputPattern: /\S/,
+      inputErrorMessage: '目录名称不能为空',
+    });
+    if (value && value !== data.label) {
+      // Assuming you have an updateCategory API
+      // await updateCategory({ id: data.id, name: value }); // Pass id and new name
+      ElMessage.success('重命名成功');
+      await loadTreeData(); // Reload data
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('重命名失败');
+      console.error('Rename failed:', error);
+    }
+  }
 };
 
-const handleDelete = (node, data) => { // node 类型暂时为 any
-  console.log('Delete', data);
-  if (!data || !node || !node.parent) return;
-
-  const children = node.parent.data.children || node.parent.data;
-  const index = children.findIndex(d => d.id === data.id);
-  if (index > -1) {
-    children.splice(index, 1);
-  }
-  treeData.value = [...treeData.value]; // 触发视图更新
+const handleDelete = async (node, data) => {
   contextMenu.visible = false;
-  // 此处应调用API保存删除
-  alert(`删除目录"${data.label}"`);
+  if (!data || !node) return;
+
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除目录 "${data.label}" 吗？此操作不可恢复。`,
+      '确认删除',
+      {
+        confirmButtonText: '确定删除',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    );
+    // Assuming you have a deleteCategory API
+    // await deleteCategory(data.id); // Pass id to delete
+    ElMessage.success('删除成功');
+    await loadTreeData(); // Reload data
+  } catch (error) {
+    if (error !== 'cancel') {
+      ElMessage.error('删除失败');
+      console.error('Delete failed:', error);
+    }
+  }
 };
 
 // 拖拽相关处理函数
-const handleDragStart = (node, ev) => { // node 类型暂时为 any
+const handleDragStart = (node, ev) => {
+  // node 类型暂时为 any
   console.log('drag start', node);
-   contextMenu.visible = false;
+  contextMenu.visible = false;
 };
 const handleDragEnter = (
   draggingNode, // node 类型暂时为 any
@@ -216,7 +261,8 @@ const handleDragLeave = (
 ) => {
   console.log('tree drag leave: ', dropNode.label);
 };
-const handleDragOver = (draggingNode, dropNode, ev) => { // node 类型暂时为 any
+const handleDragOver = (draggingNode, dropNode, ev) => {
+  // node 类型暂时为 any
   // console.log('tree drag over: ', dropNode.label);
 };
 const handleDragEnd = (
@@ -228,9 +274,8 @@ const handleDragEnd = (
   console.log('tree drag end: ', dropNode && dropNode.label, dropType);
   // 此处应调用API保存拖拽结果
   if (dropNode && dropType !== 'none') {
-      alert(`将"${draggingNode.data.label}"拖拽到"${dropNode.data.label}"(${dropType})`);
+    alert(`将"${draggingNode.data.label}"拖拽到"${dropNode.data.label}"(${dropType})`);
   }
-
 };
 const handleDrop = (
   draggingNode, // node 类型暂时为 any
@@ -242,7 +287,6 @@ const handleDrop = (
   // 官方示例没有直接修改 treeData 来响应 drop，而是依赖 allowDrop 和 allowDrag
   // 这里我们简单地记录，实际应用中可能需要更复杂的逻辑来更新数据源并通知后端
 };
-
 </script>
 
 <style scoped>
@@ -256,11 +300,20 @@ const handleDrop = (
   overflow-y: hidden;
   display: flex;
   flex-direction: column;
-  padding:10px;
+  padding: 10px;
 }
 
 .filter-input {
   margin-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.add-icon {
+  cursor: pointer;
+  color: var(--el-color-primary);
+  margin-left: 5px;
 }
 
 /* el-tree itself now takes remaining height */
@@ -281,7 +334,7 @@ const handleDrop = (
 
 /* Element Tree 节点内容区的默认 padding 可能会影响最终视觉效果，需要覆盖 */
 :deep(.el-tree-node__content) {
-  padding-top: 4px;    /* 调整节点内容的上下 padding */
+  padding-top: 4px; /* 调整节点内容的上下 padding */
   padding-bottom: 4px;
   height: auto; /* 让高度自适应内容 */
 }
@@ -299,7 +352,7 @@ const handleDrop = (
   position: fixed;
   background: white;
   border: 1px solid #ccc;
-  box-shadow: 2px 2px 5px rgba(0,0,0,0.1);
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.1);
   z-index: 1000;
   border-radius: 4px;
   min-width: 100px;
@@ -321,4 +374,4 @@ const handleDrop = (
   background-color: #ecf5ff;
   color: var(--el-color-primary);
 }
-</style> 
+</style>
