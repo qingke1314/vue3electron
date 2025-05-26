@@ -30,7 +30,6 @@
 import RichTextEditor from '../LogsAdd/RichTextEditor.vue';
 import { ref, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { ElMessage } from 'element-plus';
 import { getPostById, updatePosts } from '@/apis/posts';
 
 const route = useRoute();

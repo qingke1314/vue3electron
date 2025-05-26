@@ -3,8 +3,8 @@ import { ref, onMounted } from 'vue';
 const THEME_STORAGE_KEY = 'app-theme';
 
 export const availableThemes = [
-  { name: '浅空蓝', value: 'default', color: 'rgb(137 162 201)' },
-  { name: '清新绿', value: 'green', color: 'rgb(90, 155, 90)' },
+  { name: '浅空蓝', value: 'blue', color: 'rgb(137 162 201)' },
+  { name: '清新绿', value: 'default', color: 'rgb(90, 155, 90)' },
   { name: '热情红', value: 'red', color: 'rgb(217, 83, 79)' },
   { name: '神秘紫', value: 'purple', color: 'rgb(153, 102, 204)' },
   { name: '活力橙', value: 'orange', color: 'rgb(240, 173, 78)' },

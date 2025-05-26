@@ -1,7 +1,7 @@
 <template>
   <div class="head">
     <div>
-      <div class="page-title">{{ pageTitle }}  </div>
+      <div class="page-title">{{ pageTitle }}</div>
       <el-radio-group size="middle" class="radio-group" v-model="activeTabName" @change="getData">
         <el-radio-button value="all">全部</el-radio-button>
         <el-radio-button value="draft">草稿</el-radio-button>
@@ -15,11 +15,11 @@
       <el-col :span="8" v-for="log_item in filteredLogs" :key="log_item.id" class="log-card-col">
         <LogCard
           :log="log_item"
-          :actions="'all'" 
-          @action-completed="handleActionCompleted" 
+          :actions="'all'"
+          @action-completed="handleActionCompleted"
           @view-details="handleViewDetails"
           @edit="handleEdit"
-          @title-click="handleViewDetails" 
+          @title-click="handleViewDetails"
           @preview-click="handleViewDetails"
         />
       </el-col>
@@ -29,18 +29,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed, defineProps, watch } from 'vue';
+import { ref, onMounted, computed, watch } from 'vue';
 import { getPosts } from '@/apis/posts';
+import { getLogsByCategoryId } from '@/apis/category';
 import { useRouter, useRoute } from 'vue-router';
 import { ElMessage } from 'element-plus';
 import LogCard from '@/components/LogCard.vue';
-
-const props = defineProps({
-  directoryId: {
-    type: String,
-    default: null,
-  },
-});
 
 const logs = ref([]);
 const activeTabName = ref('all');
@@ -49,16 +43,16 @@ const router = useRouter();
 const route = useRoute();
 
 const pageTitle = computed(() => {
-  if (props.directoryId && route.query.directoryName) {
+  if (route.query.directoryName) {
     return `${route.query.directoryName} - 日志列表`;
-  } else if (props.directoryId) {
+  } else if (route.params.directoryId) {
     return `目录日志`;
   }
   return '';
 });
 
 const goBack = () => {
-  if (props.directoryId) {
+  if (route.params.directoryId) {
     router.push({ name: 'DirectoryOverview' });
   } else {
     router.push({ name: 'Home' });
@@ -67,13 +61,12 @@ const goBack = () => {
 
 const getData = () => {
   loading.value = true;
-  const params = {};
-  getPosts(params)
+  const fn = route.query.directoryName ? getLogsByCategoryId : getPosts;
+  fn(route.params.directoryId)
     .then((res) => {
       logs.value = res.map((post) => ({
         ...post,
         title: post.title || '无标题',
-        authorName: post.author?.name || '未知作者',
         publishDate: post.createdAt ? new Date(post.createdAt).toLocaleString() : '未知日期',
         previewText: post.previewText || post.content?.substring(0, 100) + '...' || '暂无内容预览',
       }));
@@ -88,12 +81,16 @@ const getData = () => {
     });
 };
 
-watch(() => props.directoryId, (newDirId, oldDirId) => {
-  if (newDirId !== oldDirId) {
-    activeTabName.value = 'all';
-    getData();
-  }
-}, { immediate: true });
+watch(
+  () => route.params.directoryId,
+  (newDirId, oldDirId) => {
+    if (newDirId !== oldDirId) {
+      activeTabName.value = 'all';
+      getData();
+    }
+  },
+  { immediate: true }
+);
 
 const filteredLogs = computed(() => {
   if (activeTabName.value === 'draft') {
@@ -117,7 +114,6 @@ const handleViewDetails = (log) => {
 const handleEdit = (log) => {
   router.push({ name: 'Editor', params: { id: log.id } });
 };
-
 </script>
 
 <style scoped>
@@ -129,7 +125,9 @@ const handleEdit = (log) => {
   padding: 12px;
 }
 .page-title {
-  font-size: 18px; font-weight: bold; line-height: 18px;
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 18px;
   display: inline-block;
   transform: translateY(7px);
   color: var(--el-text-color-primary);

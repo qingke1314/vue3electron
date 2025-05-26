@@ -8,12 +8,7 @@
         clearable
         :suffix-icon="Search"
       />
-      <el-tooltip
-        class="box-item"
-        effect="dark"
-        content="在根目录新增"
-        placement="top"
-      >
+      <el-tooltip class="box-item" effect="dark" content="在根目录新增" placement="top">
         <el-icon class="add-icon" @click="handleAdd()">
           <Plus />
         </el-icon>
@@ -21,7 +16,7 @@
     </div>
     <el-tree
       ref="treeRef"
-      style="height: calc(100% - 40px)"
+      style="height: calc(100% - 40px); overflow-x: hidden; overflow-y: auto"
       :data="treeData"
       :props="defaultProps"
       node-key="id"
@@ -42,10 +37,15 @@
         <span class="custom-tree-node">
           <!-- 根据节点类型显示不同图标 -->
           <el-icon style="margin-right: 5px" color="var(--el-color-primary)">
-            <Folder v-if="!node.isLeaf || (data.children && data.children.length > 0)" />
+            <Folder v-if="data.children" />
             <Document v-else />
           </el-icon>
-          <span>{{ node.label }}</span>
+          <span
+            :style="`width: calc(180px - ${node.level * 16}px);`"
+            class="node-label"
+            :title="node.label"
+            >{{ node.label }}</span
+          >
         </span>
       </template>
     </el-tree>
@@ -55,7 +55,13 @@
   <div v-if="contextMenu.visible" :style="contextMenuPosition" class="context-menu">
     <ul class="menu-list">
       <li @click="handleAdd(contextMenu.data)">
-        <el-icon><Plus /></el-icon> 新增
+        <el-icon><Plus /></el-icon> 新增目录
+      </li>
+      <li @click="handleAddPost(contextMenu.data)">
+        <el-icon><Plus /></el-icon> 新增日志
+      </li>
+      <li @click="handleImportLogs(contextMenu.data)">
+        <el-icon><Download /></el-icon> 导入日志
       </li>
       <li @click="handleRename(contextMenu.data)">
         <el-icon><EditPen /></el-icon> 重命名
@@ -65,20 +71,82 @@
       </li>
     </ul>
   </div>
+
+  <!-- 导入日志对话框 -->
+  <el-dialog
+    v-model="importLogsDialogVisible"
+    title="导入日志"
+    width="60%"
+    :before-close="handleImportDialogClose"
+  >
+    <div class="import-logs-container">
+      <div class="filter-container">
+        <el-input
+          v-model="logsFilter"
+          placeholder="搜索日志"
+          clearable
+          :suffix-icon="Search"
+          @input="filterLogs"
+        />
+      </div>
+      <div class="logs-list">
+        <el-table
+          ref="multipleTableRef"
+          :data="filteredLogs"
+          style="width: 100%"
+          height="350px"
+          @selection-change="handleSelectionChange"
+        >
+          <el-table-column type="selection" width="55" />
+          <el-table-column property="title" label="标题" show-overflow-tooltip />
+          <el-table-column
+            property="createdAt"
+            label="创建时间"
+            width="180"
+            :formatter="formatDate"
+          />
+        </el-table>
+      </div>
+    </div>
+    <template #footer>
+      <span class="dialog-footer">
+        <el-button @click="importLogsDialogVisible = false">取消</el-button>
+        <el-button type="primary" @click="confirmImportLogs" :disabled="selectedLogs.length === 0">
+          导入选中的 {{ selectedLogs.length }} 篇日志
+        </el-button>
+      </span>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
-import { getAllCategories, addCategory } from '@/apis/category';
+import {
+  getAllCategories,
+  addCategory,
+  addNewPostToCategory,
+  importPostsToCategory,
+  deleteCategory,
+  renameCategory,
+} from '@/apis/category';
+import { getPosts } from '@/apis/posts';
 import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue';
-import { ElMessageBox, ElMessage } from 'element-plus';
 // 导入 Element Plus 图标
-import { Folder, Document, Search, Plus, EditPen, Delete } from '@element-plus/icons-vue';
+import { Folder, Document, Search, Plus, EditPen, Delete, Download } from '@element-plus/icons-vue';
 
 const emit = defineEmits(['node-click']);
 
 const treeData = ref([]);
 const treeRef = ref(null); // Ref for el-tree instance
 const filterTextTree = ref(''); // Filter text for tree
+
+// 导入日志相关
+const importLogsDialogVisible = ref(false);
+const logsFilter = ref('');
+const allLogs = ref([]);
+const filteredLogs = ref([]);
+const selectedLogs = ref([]);
+const multipleTableRef = ref(null);
+const currentCategoryId = ref(null);
 
 // Watch for changes in filterTextTree and apply filter to tree
 watch(filterTextTree, (val) => {
@@ -94,7 +162,7 @@ const filterNodeMethodTree = (value, data) => {
 const defaultProps = {
   children: 'children',
   label: 'label',
-  isLeaf: 'isLeaf'
+  isLeaf: 'isLeaf',
 };
 
 const contextMenu = reactive({
@@ -113,12 +181,14 @@ const contextMenuPosition = computed(() => ({
 const loopMapTreeData = (data) => {
   return data.map((item) => {
     if (item.children) {
+      item.children = item.children.map((e) => ({ ...e, parentDirectoryId: item.id }));
       item.children = loopMapTreeData(item.children);
     }
     return {
       ...item,
-      id: item.id,
-      label: item.name,
+      id: item.content ? `${item.parentDirectoryId}-${item.id}` : item.id,
+      label: item.name || item.title,
+      isDirectory: !item.content,
     };
   });
 };
@@ -156,7 +226,11 @@ const handleNodeClick = (data) => {
 };
 
 const handleContextMenu = (event, data, node) => {
-  // node 类型暂时为 any
+  // 只有目录才显示右键菜单
+  if (!data.isDirectory) {
+    return;
+  }
+
   event.preventDefault();
   contextMenu.visible = true;
   contextMenu.x = event.clientX;
@@ -165,6 +239,23 @@ const handleContextMenu = (event, data, node) => {
   contextMenu.data = data;
 };
 
+/**
+ * 新增日志
+ */
+const handleAddPost = async (data) => {
+  addNewPostToCategory(data.id, {
+    title: `${data.name}-${new Date().getTime()}`,
+    content: '写点什么吧！',
+    published: false,
+  }).then((res) => {
+    ElMessage.success('新增成功');
+    loadTreeData();
+  });
+};
+
+/**
+ * @param data 新增目录
+ */
 const handleAdd = async (data) => {
   contextMenu.visible = false;
   try {
@@ -203,7 +294,7 @@ const handleRename = async (data) => {
     });
     if (value && value !== data.label) {
       // Assuming you have an updateCategory API
-      // await updateCategory({ id: data.id, name: value }); // Pass id and new name
+      await renameCategory(data.id, value); // Pass id and new name
       ElMessage.success('重命名成功');
       await loadTreeData(); // Reload data
     }
@@ -220,17 +311,13 @@ const handleDelete = async (node, data) => {
   if (!data || !node) return;
 
   try {
-    await ElMessageBox.confirm(
-      `确定要删除目录 "${data.label}" 吗？此操作不可恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定删除',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    );
+    await ElMessageBox.confirm(`确定要删除目录 "${data.label}" 吗？此操作不可恢复。`, '确认删除', {
+      confirmButtonText: '确定删除',
+      cancelButtonText: '取消',
+      type: 'warning',
+    });
     // Assuming you have a deleteCategory API
-    // await deleteCategory(data.id); // Pass id to delete
+    await deleteCategory(data.id); // Pass id to delete
     ElMessage.success('删除成功');
     await loadTreeData(); // Reload data
   } catch (error) {
@@ -287,6 +374,77 @@ const handleDrop = (
   // 官方示例没有直接修改 treeData 来响应 drop，而是依赖 allowDrop 和 allowDrag
   // 这里我们简单地记录，实际应用中可能需要更复杂的逻辑来更新数据源并通知后端
 };
+
+// 处理导入日志
+const handleImportLogs = async (data) => {
+  contextMenu.visible = false;
+  if (!data) return;
+
+  currentCategoryId.value = data.id;
+  importLogsDialogVisible.value = true;
+
+  try {
+    // 获取所有日志
+    const posts = await getPosts();
+    allLogs.value = posts || [];
+    filteredLogs.value = [...allLogs.value];
+  } catch (error) {
+    ElMessage.error('获取日志列表失败');
+    console.error('Failed to fetch posts:', error);
+  }
+};
+
+// 关闭导入对话框
+const handleImportDialogClose = () => {
+  importLogsDialogVisible.value = false;
+  logsFilter.value = '';
+  selectedLogs.value = [];
+};
+
+// 过滤日志
+const filterLogs = () => {
+  if (!logsFilter.value) {
+    filteredLogs.value = [...allLogs.value];
+    return;
+  }
+
+  const keyword = logsFilter.value.toLowerCase();
+  filteredLogs.value = allLogs.value.filter((log) => log.title.toLowerCase().includes(keyword));
+};
+
+// 处理选择变化
+const handleSelectionChange = (selection) => {
+  selectedLogs.value = selection;
+};
+
+// 格式化日期
+const formatDate = (row, column, cellValue) => {
+  if (!cellValue) return '';
+  return new Date(cellValue).toLocaleString();
+};
+
+// 确认导入日志
+const confirmImportLogs = async () => {
+  if (selectedLogs.value.length === 0) {
+    ElMessage.warning('请至少选择一篇日志');
+    return;
+  }
+
+  try {
+    const postIds = selectedLogs.value.map((log) => log.id);
+    await importPostsToCategory(currentCategoryId.value, postIds);
+    ElMessage.success(`成功导入 ${selectedLogs.value.length} 篇日志`);
+    importLogsDialogVisible.value = false;
+    await loadTreeData(); // 重新加载树数据
+  } catch (error) {
+    ElMessage.error('导入日志失败');
+    console.error('Failed to import logs:', error);
+  }
+};
+
+defineExpose({
+  loadTreeData,
+});
 </script>
 
 <style scoped>
@@ -297,10 +455,10 @@ const handleDrop = (
   border-radius: 6px;
   height: calc(100vh - 90px);
   box-sizing: border-box;
-  overflow-y: hidden;
   display: flex;
   flex-direction: column;
   padding: 10px;
+  width: 100%;
 }
 
 .filter-input {
@@ -324,7 +482,7 @@ const handleDrop = (
   align-items: center;
   justify-content: flex-start;
   font-size: 15px; /* 增大字体大小 */
-  padding: 3px 0px;
+  padding: 5px 0px;
 }
 
 /* 如果图标也需要相应增大，可以单独设置 */
@@ -332,13 +490,18 @@ const handleDrop = (
   font-size: 18px; /* 图标稍大于文字或与文字同大 */
 }
 
-/* Element Tree 节点内容区的默认 padding 可能会影响最终视觉效果，需要覆盖 */
-:deep(.el-tree-node__content) {
-  padding-top: 4px; /* 调整节点内容的上下 padding */
-  padding-bottom: 4px;
-  height: auto; /* 让高度自适应内容 */
+/* 添加节点文字超出显示省略号的样式 */
+.node-label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: calc(100% - 24px); /* 减去图标的宽度 */
+  display: inline-block;
 }
 
+:deep(.el-tree-node__content) {
+  height: 30px;
+}
 :deep(.el-tree-node__content:hover) {
   background-color: #f5f7fa;
 }
@@ -373,5 +536,27 @@ const handleDrop = (
 .menu-list li:hover {
   background-color: #ecf5ff;
   color: var(--el-color-primary);
+}
+
+/* 导入日志对话框样式 */
+.import-logs-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.filter-container {
+}
+
+.logs-list {
+  border: 1px solid #ebeef5;
+  border-radius: 4px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  gap: 12px;
 }
 </style>

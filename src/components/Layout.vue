@@ -8,7 +8,12 @@
         <side-menu :menu-items="menuConfig" />
       </el-aside>
       <el-main class="common-main">
-        <router-view />
+        <!-- keep-alive 缓存组件 -->
+        <router-view v-slot="{ Component }">
+          <keep-alive>
+            <component :is="Component" />
+          </keep-alive>
+        </router-view>
       </el-main>
     </el-container>
     <el-footer v-if="false" class="common-footer"></el-footer>

@@ -1,4 +1,4 @@
- <template>
+<template>
   <div class="directory-list-page" v-loading="loading">
     <h3>目录列表</h3>
     <div class="directory-grid">
@@ -17,7 +17,7 @@
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import DirectoryItem from './components/DirectoryItem.vue';
-// import { getDirectories } from '@/apis/directories'; // 假设有一个获取目录的API
+import { getAllCategories } from '@/apis/category';
 
 const directories = ref([]);
 const loading = ref(false);
@@ -27,17 +27,12 @@ const router = useRouter();
 const fetchDirectories = async () => {
   console.log('Fetching directories...');
   // 实际项目中，这里会调用API
-  return new Promise(resolve => {
-    setTimeout(() => {
-      resolve([
-        { id: 'dir_001', name: '工作文档', icon: 'Folder' },
-        { id: 'dir_002', name: '个人项目', icon: 'Folder' },
-        { id: 'dir_003', name: '学习资料', icon: 'FolderOpened' }, // 示例不同图标
-        { id: 'dir_004', name: '旅行照片', icon: 'Folder' },
-        { id: 'dir_005', name: '开发笔记', icon: 'Folder' },
-      ]);
-    }, 500);
-  });
+  const res = await getAllCategories();
+  return (res || []).map((e) => ({
+    id: e.id,
+    name: e.name,
+    icon: e.children ? 'FolderOpened' : 'Folder',
+  }));
 };
 
 onMounted(async () => {
@@ -59,7 +54,7 @@ const handleDirectoryDoubleClick = (directory) => {
   router.push({
     name: 'LogsListByDirectory',
     params: { directoryId: directory.id },
-    query: { directoryName: directory.name } // 添加 directoryName 到 query
+    query: { directoryName: directory.name }, // 添加 directoryName 到 query
   });
 };
 </script>

@@ -5,7 +5,7 @@ body {
   color: var(--el-text-color-primary);
 }
 
-html[data-theme='default'] {
+html[data-theme='blue'] {
   --el-color-primary: rgb(137 162 201);
   --el-color-primary-light-9: rgb(237, 242, 255);
   --el-color-primary-light-7: rgb(183 195 213);
@@ -15,7 +15,7 @@ html[data-theme='default'] {
   /* Add other variables specific to the default theme if any */
 }
 
-html[data-theme='green'] {
+html[data-theme='default'] {
   --el-color-primary: rgb(90, 155, 90);
   --el-color-primary-light-9: rgb(236, 245, 236);
   --el-color-primary-light-7: rgb(151, 184, 151);

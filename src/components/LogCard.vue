@@ -1,7 +1,7 @@
 <template>
-  <el-card 
+  <el-card
     class="log-card"
-    :shadow="displayMode === 'list-item' ? 'always' : 'hover'" 
+    :shadow="displayMode === 'list-item' ? 'always' : 'hover'"
     v-loading="isLoading"
   >
     <template #header>
@@ -11,10 +11,7 @@
           <el-tag :type="log.published ? 'success' : 'info'" size="small">
             {{ log.published ? '已发布' : '草稿' }}
           </el-tag>
-          <el-tooltip
-            :content="log.isFavoritedByCurrentUser ? '取消收藏' : '收藏'"
-            placement="top"
-          >
+          <el-tooltip :content="log.isFavoritedByCurrentUser ? '取消收藏' : '收藏'" placement="top">
             <el-button
               :icon="log.isFavoritedByCurrentUser ? StarFilled : Star"
               circle
@@ -26,22 +23,98 @@
           </el-tooltip>
           <!-- Action buttons moved to header for list-item mode -->
           <template v-if="displayMode === 'list-item'">
-            <el-divider direction="vertical" v-if="showAction('publish') || showAction('retract') || showAction('view-details') || showAction('edit') || showAction('delete')"></el-divider>
-            <el-button v-if="showAction('publish')" type="primary" size="small" @click.stop="internalPublishToggle" :loading="actionLoading.publish">发布</el-button>
-            <el-button v-if="showAction('retract')" type="primary" size="small" @click.stop="internalPublishToggle" :loading="actionLoading.publish">撤回</el-button>
-            <el-button v-if="showAction('view-details')" type="default" size="small" @click.stop="emit('view-details', log)">详情</el-button>
-            <el-button v-if="showAction('edit')" type="warning" size="small" @click.stop="emit('edit', log)">编辑</el-button>
-            <el-button v-if="showAction('delete')" type="danger" size="small" @click.stop="internalDelete" :loading="actionLoading.delete">删除</el-button>
+            <el-divider
+              direction="vertical"
+              v-if="
+                showAction('publish') ||
+                showAction('retract') ||
+                showAction('view-details') ||
+                showAction('edit') ||
+                showAction('delete') ||
+                showAction('remove-from-catalog')
+              "
+            ></el-divider>
+            <el-button
+              v-if="showAction('publish')"
+              type="primary"
+              size="small"
+              @click.stop="internalPublishToggle"
+              :loading="actionLoading.publish"
+              >发布</el-button
+            >
+            <el-button
+              v-if="showAction('retract')"
+              type="primary"
+              size="small"
+              @click.stop="internalPublishToggle"
+              :loading="actionLoading.publish"
+              >撤回</el-button
+            >
+            <el-button
+              v-if="showAction('view-details')"
+              type="default"
+              size="small"
+              @click.stop="emit('view-details', log)"
+              >详情</el-button
+            >
+            <el-button
+              v-if="showAction('edit')"
+              type="warning"
+              size="small"
+              @click.stop="emit('edit', log)"
+              >编辑</el-button
+            >
+            <el-button
+              v-if="showAction('remove-from-catalog')"
+              size="small"
+              @click.stop="emit('remove-from-catalog', log)"
+            >
+              移出目录
+            </el-button>
+            <el-button
+              v-if="showAction('delete')"
+              type="danger"
+              size="small"
+              @click.stop="internalDelete"
+              :loading="actionLoading.delete"
+              >删除</el-button
+            >
           </template>
         </div>
       </div>
     </template>
     <div class="log-meta" :class="{ 'inline-meta': displayMode === 'list-item' }">
-      <p><strong>作者:</strong> {{ log.authorName || '未知作者' }}</p>
-      <p><strong>日期:</strong> {{ log.publishDate || (log.createdAt ? new Date(log.createdAt).toLocaleString() : '未知日期') }}</p>
+      <p><strong>作者:</strong> {{ log.author?.name || '未知作者' }}</p>
+      <p>
+        <strong>日期:</strong>
+        {{
+          log.publishDate || (log.createdAt ? new Date(log.createdAt).toLocaleString() : '未知日期')
+        }}
+      </p>
+      <div v-if="displayMode === 'list-item'" class="expand-button">
+        <el-button
+          :icon="isExpanded ? ArrowUp : ArrowDown"
+          circle
+          size="small"
+          @click.stop="toggleExpand"
+        />
+      </div>
     </div>
-    <div class="log-preview-text" v-if="displayMode !== 'list-item'" @click.stop="emit('preview-click', log)">
-      <p>{{ log.previewText || (log.content ? log.content.substring(0,100) + '...' : '暂无预览') }}</p>
+    <div
+      class="log-preview-text"
+      v-if="displayMode !== 'list-item'"
+      @click.stop="emit('preview-click', log)"
+    >
+      <p>
+        {{ log.previewText || (log.content ? log.content.substring(0, 100) + '...' : '暂无预览') }}
+      </p>
+    </div>
+    <div
+      v-if="displayMode === 'list-item'"
+      class="log-content"
+      :class="{ 'content-expanded': isExpanded }"
+    >
+      <div v-html="sanitizedContent"></div>
     </div>
     <template #footer v-if="displayMode !== 'list-item'">
       <div class="card-actions">
@@ -68,7 +141,8 @@
           type="default"
           size="small"
           @click.stop="emit('view-details', log)"
-        >详情</el-button>
+          >详情</el-button
+        >
         <el-button
           v-if="showAction('edit')"
           type="warning"
@@ -83,17 +157,18 @@
           size="small"
           @click.stop="internalDelete"
           :loading="actionLoading.delete"
-        >删除</el-button>
+          >删除</el-button
+        >
       </div>
     </template>
   </el-card>
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, reactive } from 'vue';
-import { Star, StarFilled } from '@element-plus/icons-vue';
+import { defineProps, defineEmits, ref, reactive, computed } from 'vue';
+import { Star, StarFilled, ArrowDown, ArrowUp } from '@element-plus/icons-vue';
 import { updatePosts, deletePosts, favoritePost, unfavoritePost } from '@/apis/posts';
-import { ElMessage, ElMessageBox, ElDivider } from 'element-plus';
+import DOMPurify from 'dompurify';
 
 const props = defineProps({
   log: {
@@ -108,7 +183,7 @@ const props = defineProps({
     type: String,
     default: 'card', // Possible values: 'card', 'list-item'
     validator: (value) => ['card', 'list-item'].includes(value),
-  }
+  },
 });
 
 const emit = defineEmits([
@@ -117,14 +192,24 @@ const emit = defineEmits([
   'edit',
   'title-click',
   'preview-click',
+  'remove-from-catalog',
 ]);
 
 const isLoading = ref(false);
+const isExpanded = ref(false);
 const actionLoading = reactive({
   favorite: false,
   publish: false,
   delete: false,
 });
+
+const sanitizedContent = computed(() => {
+  return props.log.content ? DOMPurify.sanitize(props.log.content) : '暂无内容';
+});
+
+const toggleExpand = () => {
+  isExpanded.value = !isExpanded.value;
+};
 
 const internalToggleFavorite = async () => {
   actionLoading.favorite = true;
@@ -132,7 +217,11 @@ const internalToggleFavorite = async () => {
     const fn = props.log.isFavoritedByCurrentUser ? unfavoritePost : favoritePost;
     await fn(props.log.id);
     ElMessage.success(props.log.isFavoritedByCurrentUser ? '取消收藏成功' : '收藏成功');
-    emit('action-completed', { type: 'favorite', logId: props.log.id, newStatus: !props.log.isFavoritedByCurrentUser });
+    emit('action-completed', {
+      type: 'favorite',
+      logId: props.log.id,
+      newStatus: !props.log.isFavoritedByCurrentUser,
+    });
   } catch (error) {
     ElMessage.error('操作失败');
     console.error('Toggle favorite failed:', error);
@@ -146,7 +235,11 @@ const internalPublishToggle = async () => {
   try {
     const res = await updatePosts(props.log.id, { published: !props.log.published });
     ElMessage.success(res.message || '操作成功');
-    emit('action-completed', { type: 'publish', logId: props.log.id, newStatus: !props.log.published });
+    emit('action-completed', {
+      type: 'publish',
+      logId: props.log.id,
+      newStatus: !props.log.published,
+    });
   } catch (error) {
     ElMessage.error('操作失败');
     console.error('Publish toggle failed:', error);
@@ -189,6 +282,8 @@ const showAction = (actionName) => {
         return !!(!props.log.published && props.log.isUserOwner);
       case 'delete':
         return !!props.log.isUserOwner;
+      case 'remove-from-catalog':
+        return props.displayMode === 'list-item';
       default:
         return true;
     }
@@ -201,6 +296,7 @@ const showAction = (actionName) => {
 
 <style scoped>
 .log-card .card-header {
+  overflow: visible;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -242,10 +338,60 @@ const showAction = (actionName) => {
   align-items: center;
   font-size: 13px; /* Match existing meta style */
   color: #606266; /* Match existing meta style */
+  position: relative;
 }
 
 .log-meta.inline-meta p {
   margin: 0; /* Remove default paragraph margins for inline display */
+}
+
+.expand-button {
+  position: absolute;
+  right: 0;
+}
+
+.log-content {
+  /* margin-top: 15px;
+  padding: 15px; */
+  background-color: #f9f9f9;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+  font-size: 14px;
+  line-height: 1.6;
+  max-height: 0;
+  overflow: hidden;
+  opacity: 0;
+  transition: all 0.3s ease-in-out;
+}
+
+.log-content.content-expanded {
+  margin-top: 15px;
+  max-height: 500px;
+  overflow-y: auto;
+  opacity: 1;
+}
+
+.log-content::-webkit-scrollbar {
+  width: 6px;
+}
+
+.log-content::-webkit-scrollbar-thumb {
+  background-color: #ddd;
+  border-radius: 3px;
+}
+
+.log-content::-webkit-scrollbar-track {
+  background-color: #f5f5f5;
+}
+
+.log-content img {
+  max-width: 100%;
+  height: auto;
+}
+
+/* 添加过渡动画 */
+.log-content {
+  transition: max-height 0.3s ease-in-out;
 }
 
 .log-meta p {
@@ -264,7 +410,7 @@ const showAction = (actionName) => {
   -webkit-line-clamp: 3;
   overflow: hidden;
   text-overflow: ellipsis;
-  height: 2.5em; 
+  height: 2.5em;
   cursor: pointer;
 }
 
@@ -285,4 +431,4 @@ const showAction = (actionName) => {
 .header-actions .el-button.favorited-icon-active {
   color: var(--el-color-warning);
 }
-</style> 
+</style>

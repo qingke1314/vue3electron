@@ -85,7 +85,6 @@ import { ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { getPostById, getCommentsByPostId, addCommentToPost } from '@/apis/posts';
 import DOMPurify from 'dompurify'; // 重要：确保你已安装并导入 DOMPurify
-import { ElMessage } from 'element-plus';
 
 const route = useRoute();
 const router = useRouter();

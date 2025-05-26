@@ -1,7 +1,6 @@
 import { createRouter, createWebHashHistory } from 'vue-router';
 import Home from '../views/Home.vue';
 import { useUsersStore } from '@/pinia/users'; // 导入 store
-// import { ElMessage } from 'element-plus'; // 如果需要提示
 
 const routes = [
   {

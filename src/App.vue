@@ -8,13 +8,11 @@
 <script>
 import { useTheme } from '@/composables/useTheme';
 import { defineComponent } from 'vue';
-import { ElConfigProvider } from 'element-plus';
 import Layout from './components/Layout.vue';
 import AppUpdater from './components/AppUpdater.vue';
 
 export default defineComponent({
   components: {
-    ElConfigProvider,
     Layout,
     AppUpdater,
   },
