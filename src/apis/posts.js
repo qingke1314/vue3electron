@@ -80,3 +80,10 @@ export const favoritePost = (postId) => {
 export const unfavoritePost = (postId) => {
   return request.delete(`/posts/${postId}/favorite`);
 };
+
+/**
+ * 根据文章id获取对应内容
+ */
+export const getPostContentById = (id) => {
+  return request.get(`/posts/${id}/content`);
+};

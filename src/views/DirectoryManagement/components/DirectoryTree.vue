@@ -134,7 +134,6 @@ import { ref, reactive, onMounted, onBeforeUnmount, computed, watch } from 'vue'
 import { Folder, Document, Search, Plus, EditPen, Delete, Download } from '@element-plus/icons-vue';
 
 const emit = defineEmits(['node-click']);
-
 const treeData = ref([]);
 const treeRef = ref(null); // Ref for el-tree instance
 const filterTextTree = ref(''); // Filter text for tree
@@ -186,9 +185,9 @@ const loopMapTreeData = (data) => {
     }
     return {
       ...item,
-      id: item.content ? `${item.parentDirectoryId}-${item.id}` : item.id,
+      id: !item.children ? `${item.parentDirectoryId}-${item.id}` : item.id,
       label: item.name || item.title,
-      isDirectory: !item.content,
+      isDirectory: item.children,
     };
   });
 };
@@ -198,6 +197,7 @@ const loadTreeData = async () => {
     const res = await getAllCategories();
     // Ensure children is always an array, and map isLeaf correctly
     treeData.value = loopMapTreeData(res || []);
+    return treeData.value;
   } catch (error) {
     ElMessage.error('加载目录数据失败');
     console.error('Failed to fetch tree data:', error);

@@ -8,7 +8,7 @@
         size="default"
         :suffix-icon="Search"
         v-model="filterTextLogs"
-        placeholder="筛选日志标题或内容"
+        placeholder="筛选日志标题"
         clearable
         class="filter-input-logs"
         :disabled="!currentSelectedNode"
@@ -26,7 +26,7 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue';
+import { ref, computed, onActivated } from 'vue';
 import DirectoryTree from './components/DirectoryTree.vue';
 import LogList from './components/LogList.vue';
 import LogDetail from './components/LogDetail.vue';
@@ -42,25 +42,45 @@ const filteredCurrentLogs = computed(() => {
     return currentLogs.value;
   }
   return currentLogs.value.filter(
-    (log) =>
-      (log.title && log.title.toLowerCase().includes(filterTextLogs.value.toLowerCase())) ||
-      (log.content && log.content.toLowerCase().includes(filterTextLogs.value.toLowerCase()))
+    (log) => log.title && log.title.toLowerCase().includes(filterTextLogs.value.toLowerCase())
   );
 });
 
 const handleNodeClick = async (node) => {
+  console.log(node, 'node');
   currentSelectedNode.value = node;
   filterTextLogs.value = '';
-  currentLogs.value = node?.isDirectory ? node.children.filter((e) => !e.isDirectory) : [node];
+  currentLogs.value = node?.isDirectory
+    ? (node.children || []).filter((e) => !e.isDirectory)
+    : [node];
 };
 
 const handleLogClick = (log) => {};
 
-const handleLogActionCompleted = async (eventPayload) => {
-  // 左侧树重新加载
-  treeRef.value.loadTreeData();
-  handleNodeClick(null);
+const findItemInTree = (tree, id) => {
+  if (!tree) return null;
+  for (const item of tree) {
+    if (item.id === id) {
+      return item;
+    }
+    if (item.children) {
+      const result = findItemInTree(item.children, id);
+      if (result) return result;
+    }
+  }
+  return null;
 };
+const handleLogActionCompleted = async () => {
+  // 左侧树重新加载
+  const newTreeData = await treeRef.value.loadTreeData();
+  console.log(newTreeData.value, 'newTreeData', currentSelectedNode.value);
+  const currentNewNode = findItemInTree(newTreeData, currentSelectedNode.value.id);
+  handleNodeClick(currentNewNode);
+};
+
+onActivated(() => {
+  handleLogActionCompleted();
+});
 </script>
 
 <style lang="scss" scoped>
@@ -100,5 +120,6 @@ const handleLogActionCompleted = async (eventPayload) => {
 :deep(.log-detail-container) {
   flex-grow: 1;
   overflow-y: auto;
+  overflow-x: hidden;
 }
 </style>

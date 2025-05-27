@@ -10,7 +10,7 @@
       <el-main class="common-main">
         <!-- keep-alive 缓存组件 -->
         <router-view v-slot="{ Component }">
-          <keep-alive>
+          <keep-alive :include="['DirectoryManagement']">
             <component :is="Component" />
           </keep-alive>
         </router-view>

@@ -167,7 +167,13 @@
 <script setup>
 import { defineProps, defineEmits, ref, reactive, computed } from 'vue';
 import { Star, StarFilled, ArrowDown, ArrowUp } from '@element-plus/icons-vue';
-import { updatePosts, deletePosts, favoritePost, unfavoritePost } from '@/apis/posts';
+import {
+  updatePosts,
+  deletePosts,
+  favoritePost,
+  unfavoritePost,
+  getPostContentById,
+} from '@/apis/posts';
 import DOMPurify from 'dompurify';
 
 const props = defineProps({
@@ -185,6 +191,8 @@ const props = defineProps({
     validator: (value) => ['card', 'list-item'].includes(value),
   },
 });
+
+const postContent = ref('');
 
 const emit = defineEmits([
   'action-completed',
@@ -204,11 +212,19 @@ const actionLoading = reactive({
 });
 
 const sanitizedContent = computed(() => {
-  return props.log.content ? DOMPurify.sanitize(props.log.content) : '暂无内容';
+  return postContent.value ? DOMPurify.sanitize(postContent.value) : '暂无内容';
 });
 
 const toggleExpand = () => {
-  isExpanded.value = !isExpanded.value;
+  isLoading.value = true;
+  getPostContentById(props.log.id)
+    .then((res) => {
+      postContent.value = res.content;
+      isExpanded.value = !isExpanded.value;
+    })
+    .finally(() => {
+      isLoading.value = false;
+    });
 };
 
 const internalToggleFavorite = async () => {
@@ -301,6 +317,9 @@ const showAction = (actionName) => {
   justify-content: space-between;
   align-items: center;
 }
+:deep(.el-card__body) {
+  overflow: visible;
+}
 
 .log-title {
   font-weight: bold;
@@ -358,17 +377,15 @@ const showAction = (actionName) => {
   border: 1px solid #ebeef5;
   font-size: 14px;
   line-height: 1.6;
-  max-height: 0;
   overflow: hidden;
-  opacity: 0;
   transition: all 0.3s ease-in-out;
+  padding: 8px;
 }
 
 .log-content.content-expanded {
   margin-top: 15px;
-  max-height: 500px;
   overflow-y: auto;
-  opacity: 1;
+  display: block;
 }
 
 .log-content::-webkit-scrollbar {
@@ -391,7 +408,8 @@ const showAction = (actionName) => {
 
 /* 添加过渡动画 */
 .log-content {
-  transition: max-height 0.3s ease-in-out;
+  display: none;
+  transition: display 0.3s ease-in-out;
 }
 
 .log-meta p {

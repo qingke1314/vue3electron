@@ -59,6 +59,10 @@ const goBack = () => {
   }
 };
 
+onMounted(() => {
+  getData();
+});
+
 const getData = () => {
   loading.value = true;
   const fn = route.query.directoryName ? getLogsByCategoryId : getPosts;
