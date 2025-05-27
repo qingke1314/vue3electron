@@ -6,7 +6,7 @@ echo "Electron-builder build should be complete. Starting upload to update serve
 BUILD_OUTPUT_DIR="${BUILD_OUTPUT_DIR:-release}" # 使用环境变量或默认值
 REMOTE_USER="sec"
 REMOTE_HOST="118.178.197.208"
-REMOTE_TARGET_DIR="/project/backon/updates"
+REMOTE_TARGET_DIR="/project/nestjs-secnote/updates"
 MAX_RETRIES=3
 
 # 检查输出目录是否存在
