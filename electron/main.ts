@@ -78,7 +78,6 @@ function createWindow() {
       submenu: [
         { role: 'reload', label: '重新加载' },
         { role: 'forceReload', label: '强制重新加载' },
-        { role: 'toggleDevTools', label: '开发者工具' },
         { type: 'separator' },
         { role: 'resetZoom', label: '重置缩放' },
         { role: 'zoomIn', label: '放大' },
@@ -180,7 +179,7 @@ app.whenReady().then(() => {
   // checkForUpdates();
 
   // 注册全局快捷键
-  const ret = globalShortcut.register('Control+Shift+D', () => {
+  const ret = globalShortcut.register('Control + Shift + D + Enter', () => {
     if (win) {
       // 打开或关闭当前窗口的开发者工具
       win.webContents.toggleDevTools();

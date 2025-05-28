@@ -39,14 +39,16 @@
       <div class="chat-messages" ref="messagesRef">
         <div v-for="(message, index) in messages" :key="index" :class="['message', message.role]">
           <div class="message-content">
-            <div v-if="message.role === 'assistant' && message.loading" class="typing-indicator">
-              <span></span>
-              <span></span>
-              <span></span>
+            <div
+              v-if="
+                message.role === 'assistant' &&
+                message.loading &&
+                (!message.content || !message.reasoning_content)
+              "
+            >
+              <span> 请求中，请稍后... </span>
             </div>
             <div v-else>
-              <div v-html="formatMessage(message.content)"></div>
-
               <!-- 思考过程 (仅R1模型) -->
               <div v-if="message.reasoning_content" class="reasoning-section">
                 <div class="reasoning-header" @click="toggleReasoning(index)">
@@ -57,6 +59,7 @@
                   <div v-html="formatMessage(message.reasoning_content)"></div>
                 </div>
               </div>
+              <div v-html="formatMessage(message.content)"></div>
             </div>
           </div>
         </div>
@@ -119,7 +122,7 @@
 
 <script setup>
 import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
-import { ChatRound, Position, ArrowRight, FullScreen, Aim } from '@element-plus/icons-vue';
+import { ChatRound, Position, ArrowRight, FullScreen, Aim, Loading } from '@element-plus/icons-vue';
 import { useUsersStore } from '@/pinia/users';
 import axios from 'axios';
 import DOMPurify from 'dompurify';
@@ -202,7 +205,7 @@ const toggleChat = (event) => {
   if (isOpen.value) {
     unreadCount.value = 0;
     nextTick(() => {
-      scrollToBottom();
+      // scrollToBottom();
     });
   }
 };
@@ -217,7 +220,7 @@ const scrollToBottom = () => {
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value;
   nextTick(() => {
-    scrollToBottom();
+    // scrollToBottom();
   });
 };
 
@@ -273,7 +276,7 @@ const sendMessage = async () => {
             '请先配置 DeepSeek API Key 才能使用 AI 助手功能。点击底部的"API 设置"按钮进行配置。',
         });
         isLoading.value = false;
-        scrollToBottom();
+        // scrollToBottom();
       }, 1000);
       return;
     }
@@ -291,7 +294,7 @@ const sendMessage = async () => {
   } finally {
     isLoading.value = false;
     await nextTick();
-    scrollToBottom();
+    // scrollToBottom();
 
     // 如果聊天窗口关闭，增加未读消息计数
     if (!isOpen.value) {
@@ -359,7 +362,6 @@ const callDeepSeekAPI = async (prompt) => {
             role: m.role,
             content: m.content,
           })),
-        { role: 'user', content: prompt },
       ],
       temperature: 1.3,
       max_tokens: 5000,
@@ -371,7 +373,7 @@ const callDeepSeekAPI = async (prompt) => {
     messages.value.push({
       role: 'assistant',
       content: '',
-      loading: false, // 不显示加载动画，因为我们会实时更新内容
+      loading: true, // 不显示加载动画，因为我们会实时更新内容
       reasoning_content: currentModel.value === 'r1' ? '' : null,
     });
 
@@ -430,7 +432,7 @@ const callDeepSeekAPI = async (prompt) => {
 
             // 强制更新视图
             await nextTick();
-            scrollToBottom();
+            // scrollToBottom();
           } catch (e) {
             console.error('解析流数据失败:', e, line);
           }
@@ -659,28 +661,6 @@ watch(
   padding: 5px 0;
 }
 
-.typing-indicator span {
-  width: 8px;
-  height: 8px;
-  background-color: #ccc;
-  border-radius: 50%;
-  margin: 0 2px;
-  display: inline-block;
-  animation: typing 1.4s infinite ease-in-out both;
-}
-
-.typing-indicator span:nth-child(1) {
-  animation-delay: 0s;
-}
-
-.typing-indicator span:nth-child(2) {
-  animation-delay: 0.2s;
-}
-
-.typing-indicator span:nth-child(3) {
-  animation-delay: 0.4s;
-}
-
 @keyframes typing {
   0%,
   80%,
@@ -765,8 +745,8 @@ watch(
 }
 
 .reasoning-section {
-  margin-top: 10px;
-  border-top: 1px dashed #ddd;
+  margin-bottom: 10px;
+  border-bottom: 1px dashed #ddd;
   padding-top: 5px;
 }
 
@@ -776,7 +756,7 @@ watch(
   cursor: pointer;
   color: var(--el-color-primary);
   font-size: 0.9em;
-  padding: 5px 0;
+  padding-bottom: 12px;
 }
 
 .reasoning-header .el-icon {
