@@ -14,6 +14,7 @@
         :disabled="!currentSelectedNode"
       />
       <LogList
+        :onlyOneLog="currentSelectedNode?.isDirectory ? false : true"
         :categoryId="currentSelectedNode?.isDirectory ? currentSelectedNode?.id : ''"
         v-if="currentSelectedNode"
         :logs="filteredCurrentLogs"

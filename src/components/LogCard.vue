@@ -93,6 +93,13 @@
       </p>
       <div v-if="displayMode === 'list-item'" class="expand-button">
         <el-button
+          v-if="isExpanded"
+          :icon="Refresh"
+          circle
+          size="small"
+          @click.stop="handleFlush"
+        />
+        <el-button
           :icon="isExpanded ? ArrowUp : ArrowDown"
           circle
           size="small"
@@ -165,8 +172,17 @@
 </template>
 
 <script setup>
-import { defineProps, defineEmits, ref, reactive, computed } from 'vue';
-import { Star, StarFilled, ArrowDown, ArrowUp } from '@element-plus/icons-vue';
+import {
+  defineProps,
+  defineEmits,
+  ref,
+  reactive,
+  computed,
+  watch,
+  onMounted,
+  onActivated,
+} from 'vue';
+import { Star, StarFilled, ArrowDown, ArrowUp, Refresh } from '@element-plus/icons-vue';
 import {
   updatePosts,
   deletePosts,
@@ -189,6 +205,10 @@ const props = defineProps({
     type: String,
     default: 'card', // Possible values: 'card', 'list-item'
     validator: (value) => ['card', 'list-item'].includes(value),
+  },
+  defaultShow: {
+    type: Boolean,
+    default: false,
   },
 });
 
@@ -216,16 +236,43 @@ const sanitizedContent = computed(() => {
 });
 
 const toggleExpand = () => {
+  if (!isExpanded.value) {
+    isLoading.value = true;
+    getPostContentById(props.log.id)
+      .then((res) => {
+        postContent.value = res.content;
+        isExpanded.value = !isExpanded.value;
+      })
+      .finally(() => {
+        isLoading.value = false;
+      });
+  } else {
+    isExpanded.value = !isExpanded.value;
+  }
+};
+
+const handleFlush = () => {
   isLoading.value = true;
   getPostContentById(props.log.id)
     .then((res) => {
       postContent.value = res.content;
-      isExpanded.value = !isExpanded.value;
     })
     .finally(() => {
       isLoading.value = false;
     });
 };
+
+onMounted(() => {
+  if (props.defaultShow) {
+    toggleExpand();
+  }
+});
+
+onActivated(() => {
+  if (isExpanded.value) {
+    handleFlush();
+  }
+});
 
 const internalToggleFavorite = async () => {
   actionLoading.favorite = true;

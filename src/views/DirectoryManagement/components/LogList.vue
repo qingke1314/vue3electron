@@ -1,8 +1,8 @@
 <template>
   <div class="log-list-container-directory">
     <LogCard
-      v-for="log_item in formatIdLogs"
-      :key="log_item.id"
+      v-for="(log_item, index) in formatIdLogs"
+      :key="log_item.id + onlyOneLog"
       :log="log_item"
       actions="all"
       displayMode="list-item"
@@ -13,6 +13,7 @@
       @title-click="handleLogClick"
       @preview-click="handleLogClick"
       @remove-from-catalog="handleRemoveFromCatalog"
+      :defaultShow="index === 0 && onlyOneLog"
     />
     <el-empty
       v-if="!formatIdLogs || formatIdLogs.length === 0"
@@ -34,6 +35,10 @@ const props = defineProps({
   },
   categoryId: {
     type: String,
+  },
+  onlyOneLog: {
+    type: Boolean,
+    default: false,
   },
 });
 

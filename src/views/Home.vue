@@ -15,6 +15,10 @@
       <el-button type="primary" @click="handleViewList">
         <el-icon style="margin-right: 5px"><Notebook /></el-icon>日志列表
       </el-button>
+      <!-- 目录列表 -->
+      <el-button type="primary" @click="handleViewCategoryList">
+        <el-icon style="margin-right: 5px"><Notebook /></el-icon>目录列表
+      </el-button>
     </div>
 
     <!-- 主要内容区 -->
@@ -158,7 +162,11 @@ const handleCategorySelect = (index) => {
 };
 
 const handleViewList = () => {
-  router.push({ name: 'LogsList' });
+  router.push({ name: 'LogsListAll' });
+};
+
+const handleViewCategoryList = () => {
+  router.push({ name: 'DirectoryConfig' });
 };
 
 const handleToggleFavorite = async (log) => {

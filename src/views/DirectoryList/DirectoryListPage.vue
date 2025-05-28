@@ -1,6 +1,16 @@
 <template>
   <div class="directory-list-page" v-loading="loading">
-    <h3>目录列表</h3>
+    <div style="font-weight: bold; font-size: 18px; margin-bottom: 10px">
+      <el-icon
+        style="transform: translateY(4px); cursor: pointer"
+        v-if="lastDirectoryArray.length > 0"
+        :size="20"
+        @click="handleBackClick"
+      >
+        <ArrowLeft />
+      </el-icon>
+      目录列表
+    </div>
     <div class="directory-grid">
       <DirectoryItem
         v-for="dir in directories"
@@ -14,21 +24,25 @@
 </template>
 
 <script setup>
+import { ArrowLeft } from '@element-plus/icons-vue';
 import { ref, onMounted } from 'vue';
-import { useRouter } from 'vue-router';
+import { useRouter, useRoute } from 'vue-router';
 import DirectoryItem from './components/DirectoryItem.vue';
 import { getAllCategories } from '@/apis/category';
+import { getItemById } from '@/utils/utils';
 
 const directories = ref([]);
+const lastDirectoryArray = ref([]);
 const loading = ref(false);
 const router = useRouter();
-
+const routeQuery = useRoute().query;
 // 模拟获取目录数据的API
 const fetchDirectories = async () => {
   console.log('Fetching directories...');
   // 实际项目中，这里会调用API
   const res = await getAllCategories();
   return (res || []).map((e) => ({
+    children: e.children || [],
     id: e.id,
     name: e.name,
     icon: e.children ? 'FolderOpened' : 'Folder',
@@ -38,7 +52,6 @@ const fetchDirectories = async () => {
 onMounted(async () => {
   loading.value = true;
   try {
-    // directories.value = await getDirectories(); // 真实API调用
     directories.value = await fetchDirectories(); // 使用模拟API
   } catch (error) {
     console.error('Failed to fetch directories:', error);
@@ -48,14 +61,22 @@ onMounted(async () => {
   }
 });
 
+const handleBackClick = () => {
+  directories.value = lastDirectoryArray.value.pop();
+};
+
 const handleDirectoryDoubleClick = (directory) => {
-  console.log('Directory double clicked:', directory);
-  // 导航到日志列表页，并带上目录ID和目录名称
-  router.push({
-    name: 'LogsListByDirectory',
-    params: { directoryId: directory.id },
-    query: { directoryName: directory.name }, // 添加 directoryName 到 query
-  });
+  const directoryItem = getItemById(directory.id, directories.value);
+  if (directoryItem && directoryItem.children) {
+    lastDirectoryArray.value.push(directories.value);
+    directories.value = directoryItem.children.map((e) => ({
+      ...e,
+      name: e.name || e.title,
+      icon: e.children ? 'FolderOpened' : 'Folder',
+    }));
+  } else {
+    router.push({ name: 'LogDetail', params: { id: directoryItem.id } });
+  }
 };
 </script>
 

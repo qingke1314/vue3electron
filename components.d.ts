@@ -8,6 +8,7 @@ export {}
 /* prettier-ignore */
 declare module 'vue' {
   export interface GlobalComponents {
+    AIChatBubble: typeof import('./src/components/AIChatBubble.vue')['default']
     AppUpdater: typeof import('./src/components/AppUpdater.vue')['default']
     ElAside: typeof import('element-plus/es')['ElAside']
     ElAutocomplete: typeof import('element-plus/es')['ElAutocomplete']

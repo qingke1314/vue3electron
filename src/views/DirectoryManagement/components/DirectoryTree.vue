@@ -20,7 +20,8 @@
       :data="treeData"
       :props="defaultProps"
       node-key="id"
-      default-expand-all
+      accordion
+      :default-expanded-keys="defaultExpandedKeys"
       :expand-on-click-node="false"
       :filter-node-method="filterNodeMethodTree"
       @node-click="handleNodeClick"
@@ -146,6 +147,7 @@ const filteredLogs = ref([]);
 const selectedLogs = ref([]);
 const multipleTableRef = ref(null);
 const currentCategoryId = ref(null);
+const defaultExpandedKeys = ref([]);
 
 // Watch for changes in filterTextTree and apply filter to tree
 watch(filterTextTree, (val) => {
@@ -197,6 +199,7 @@ const loadTreeData = async () => {
     const res = await getAllCategories();
     // Ensure children is always an array, and map isLeaf correctly
     treeData.value = loopMapTreeData(res || []);
+    defaultExpandedKeys.value = [treeData.value?.[0]?.id];
     return treeData.value;
   } catch (error) {
     ElMessage.error('加载目录数据失败');
@@ -206,7 +209,8 @@ const loadTreeData = async () => {
 };
 
 onMounted(async () => {
-  await loadTreeData();
+  const treeData = await loadTreeData();
+  treeData[0] && emit('node-click', treeData[0]);
   document.addEventListener('click', handleClickOutsideContextMenu);
 });
 
