@@ -20,7 +20,6 @@
       :data="treeData"
       :props="defaultProps"
       node-key="id"
-      accordion
       :default-expanded-keys="defaultExpandedKeys"
       :expand-on-click-node="false"
       :filter-node-method="filterNodeMethodTree"
@@ -187,30 +186,54 @@ const loopMapTreeData = (data) => {
     }
     return {
       ...item,
-      id: !item.children ? `${item.parentDirectoryId}-${item.id}` : item.id,
       label: item.name || item.title,
-      isDirectory: item.children,
+      isDirectory: !!item.children, // 确保 isDirectory 是布尔值
+      id: !item.children ? `${item.parentDirectoryId}-${item.id}` : item.id,
     };
   });
 };
 
 const loadTreeData = async () => {
+  const oldExpandedKeys = [];
+  if (treeRef.value && treeRef.value.store) {
+    for (const nodeId in treeRef.value.store.nodesMap) {
+      if (treeRef.value.store.nodesMap[nodeId].expanded) {
+        oldExpandedKeys.push(treeRef.value.store.nodesMap[nodeId].key);
+      }
+    }
+  }
+
   try {
     const res = await getAllCategories();
-    // Ensure children is always an array, and map isLeaf correctly
-    treeData.value = loopMapTreeData(res || []);
-    defaultExpandedKeys.value = [treeData.value?.[0]?.id];
-    return treeData.value;
+    const newTreeData = loopMapTreeData(res || []);
+    treeData.value = newTreeData;
+
+    if (oldExpandedKeys.length > 0) {
+      defaultExpandedKeys.value = oldExpandedKeys;
+    } else if (newTreeData.length > 0 && newTreeData[0]) {
+      defaultExpandedKeys.value = [newTreeData[0].id];
+    } else {
+      defaultExpandedKeys.value = [];
+    }
+    return newTreeData; // 返回处理后的数据
   } catch (error) {
     ElMessage.error('加载目录数据失败');
     console.error('Failed to fetch tree data:', error);
     treeData.value = []; // Set to empty array on error
+    defaultExpandedKeys.value = [];
+    return []; // 返回空数组
   }
 };
 
 onMounted(async () => {
-  const treeData = await loadTreeData();
-  treeData[0] && emit('node-click', treeData[0]);
+  const initialTreeData = await loadTreeData(); // loadTreeData 会处理 defaultExpandedKeys
+  if (initialTreeData && initialTreeData.length > 0 && initialTreeData[0]) {
+    // 初始加载时，如果第一个节点存在，则触发点击事件
+    // 注意：此时 defaultExpandedKeys 可能已经基于 oldExpandedKeys 或首节点ID设置了
+    // 如果希望总是点击第一个节点，即便它之前不是展开的父节点的子节点，此逻辑保留
+    // 如果希望基于恢复的展开状态来决定点击哪个，则需要更复杂的逻辑
+    emit('node-click', initialTreeData[0]);
+  }
   document.addEventListener('click', handleClickOutsideContextMenu);
 });
 

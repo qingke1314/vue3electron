@@ -58,24 +58,32 @@ const handleNodeClick = async (node) => {
 
 const handleLogClick = (log) => {};
 
-const findItemInTree = (tree, id) => {
-  if (!tree) return null;
-  for (const item of tree) {
-    if (item.id === id) {
-      return item;
-    }
-    if (item.children) {
-      const result = findItemInTree(item.children, id);
-      if (result) return result;
-    }
+const findItemByKey = (tree, id) => {
+  let cutItem;
+  const filterFn = list => {
+    (list || []).forEach(item => {
+      if (item.id == id) {
+        cutItem = item;
+      }
+      if(item?.children?.length) {
+        filterFn(item.children)
+      }
+    })
   }
-  return null;
-};
+  filterFn(tree);
+  console.log(cutItem, 'curItem');
+  return cutItem;
+}
 const handleLogActionCompleted = async () => {
+  console.log('completed');
   // 左侧树重新加载
   const newTreeData = await treeRef.value.loadTreeData();
-  console.log(newTreeData.value, 'newTreeData', currentSelectedNode.value);
-  const currentNewNode = findItemInTree(newTreeData, currentSelectedNode.value.id);
+  let currentNewNode = findItemByKey(newTreeData, currentSelectedNode.value.id);
+  if (!currentNewNode) {
+    currentNewNode = findItemByKey(newTreeData, (currentSelectedNode.value.parentDirectoryId || currentSelectedNode.value.parentId));
+  }
+  console.log(currentNewNode, currentSelectedNode.value.parentDirectoryId, newTreeData, 'current');
+  if(!currentNewNode) return;
   handleNodeClick(currentNewNode);
 };
 
