@@ -16426,7 +16426,7 @@ require$$1$5.app.on("activate", () => {
 });
 require$$1$5.app.whenReady().then(() => {
   createWindow();
-  const ret = require$$1$5.globalShortcut.register("Control + Shift + D + Enter", () => {
+  const ret = require$$1$5.globalShortcut.register("Control + D + Enter", () => {
     if (win) {
       win.webContents.toggleDevTools();
     }

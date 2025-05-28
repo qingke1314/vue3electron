@@ -179,7 +179,7 @@ app.whenReady().then(() => {
   // checkForUpdates();
 
   // 注册全局快捷键
-  const ret = globalShortcut.register('Control + Shift + D + Enter', () => {
+  const ret = globalShortcut.register('Control + D + Enter', () => {
     if (win) {
       // 打开或关闭当前窗口的开发者工具
       win.webContents.toggleDevTools();

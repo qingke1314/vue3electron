@@ -39,27 +39,27 @@
       <div class="chat-messages" ref="messagesRef">
         <div v-for="(message, index) in messages" :key="index" :class="['message', message.role]">
           <div class="message-content">
-            <div
-              v-if="
-                message.role === 'assistant' &&
-                message.loading &&
-                (!message.content || !message.reasoning_content)
-              "
-            >
+            <div v-if="false">
               <span> 请求中，请稍后... </span>
             </div>
             <div v-else>
               <!-- 思考过程 (仅R1模型) -->
               <div v-if="message.reasoning_content" class="reasoning-section">
                 <div class="reasoning-header" @click="toggleReasoning(index)">
-                  <el-icon><ArrowRight :class="{ rotated: message.showReasoning }" /></el-icon>
+                  <span class="reasoning-loading" v-if="isLoading">
+                    <el-icon><Loading /></el-icon>
+                  </span>
                   <span>思考过程</span>
+                  <el-icon><ArrowRight :class="{ rotated: message.showReasoning }" /></el-icon>
                 </div>
                 <div v-show="message.showReasoning" class="reasoning-content">
                   <div v-html="formatMessage(message.reasoning_content)"></div>
                 </div>
               </div>
-              <div v-html="formatMessage(message.content)"></div>
+              <div v-if="message.content" v-html="formatMessage(message.content)"></div>
+              <div v-else>
+                <span>加载中...</span>
+              </div>
             </div>
           </div>
         </div>
@@ -156,11 +156,13 @@ const bubbleStyle = computed(() => ({
 // 拖拽相关
 let isDragging = false;
 let dragOffset = { x: 0, y: 0 };
+let actualDragMoved = false; // 新增变量，标记是否实际发生了拖拽
 
 const startDrag = (event) => {
   if (isOpen.value) return; // 聊天窗口打开时不允许拖动
 
   isDragging = true;
+  actualDragMoved = false; // 重置拖拽标记
   const bubbleRect = bubbleRef.value.getBoundingClientRect();
   dragOffset.x = event.clientX - bubbleRect.left;
   dragOffset.y = event.clientY - bubbleRect.top;
@@ -174,6 +176,7 @@ const startDrag = (event) => {
 
 const onDrag = (event) => {
   if (!isDragging) return;
+  actualDragMoved = true; // 标记发生了实际拖拽
 
   const newX = event.clientX - dragOffset.x;
   const newY = event.clientY - dragOffset.y;
@@ -197,8 +200,13 @@ const stopDrag = () => {
 
 // 聊天相关
 const toggleChat = (event) => {
-  // 如果正在拖拽，不触发切换
-  if (isDragging) return;
+  // 如果是拖拽结束后的点击，则不切换
+  if (actualDragMoved) {
+    actualDragMoved = false; // 消耗标记
+    return;
+  }
+  // 原有的 isDragging 判断可以移除，因为它在mouseup后已经是false
+  // if (isDragging) return;
 
   isOpen.value = !isOpen.value;
 
@@ -347,6 +355,15 @@ watch(
 
 // DeepSeek API 集成
 const callDeepSeekAPI = async (prompt) => {
+  // 创建一个新的消息索引，并预先添加助手消息占位符
+  const messageIndex = messages.value.length;
+  messages.value.push({
+    role: 'assistant',
+    content: '', // 初始为空，将由API响应或错误信息填充
+    loading: true, // 初始设置为加载中
+    reasoning_content: currentModel.value === 'r1' ? '' : null,
+  });
+
   try {
     const modelName = currentModel.value === 'v3' ? 'deepseek-chat' : 'deepseek-reasoner';
     const requestBody = {
@@ -356,26 +373,19 @@ const callDeepSeekAPI = async (prompt) => {
           role: 'system',
           content: '你是一个有用的AI助手，请提供准确、简洁的回答。',
         },
+        // 获取 placeholder 之前的所有消息作为历史记录
         ...messages.value
-          .filter((m) => !m.loading)
+          .slice(0, messageIndex) 
+          .filter((m) => !m.loading) // 确保不包含其他仍在加载中的消息
           .map((m) => ({
             role: m.role,
             content: m.content,
           })),
       ],
       temperature: 1.3,
-      max_tokens: 5000,
+      max_tokens: 8192,
       stream: true,
     };
-
-    // 创建一个新的消息索引
-    const messageIndex = messages.value.length;
-    messages.value.push({
-      role: 'assistant',
-      content: '',
-      loading: true, // 不显示加载动画，因为我们会实时更新内容
-      reasoning_content: currentModel.value === 'r1' ? '' : null,
-    });
 
     const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
@@ -388,7 +398,8 @@ const callDeepSeekAPI = async (prompt) => {
     });
 
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+      const errorBody = await response.text().catch(() => '无法读取错误详情');
+      throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
     const reader = response.body.getReader();
@@ -401,47 +412,42 @@ const callDeepSeekAPI = async (prompt) => {
       const { done, value } = await reader.read();
       if (done) break;
 
-      // 解码并添加到缓冲区
       buffer += decoder.decode(value, { stream: true });
-
-      // 处理缓冲区中的完整行
       const lines = buffer.split('\n');
-      // 保留最后一个可能不完整的行
       buffer = lines.pop() || '';
 
       for (const line of lines) {
-        if (line.trim() === '') continue;
+        if (line.trim() === '' || line.trim() === 'data: [DONE]') continue;
 
         if (line.startsWith('data: ')) {
           const data = line.slice(6);
-          if (data === '[DONE]') continue;
-
           try {
             const parsed = JSON.parse(data);
             const delta = parsed.choices[0].delta;
 
             if (delta.content) {
               accumulatedContent += delta.content;
-              messages.value[messageIndex].content = accumulatedContent;
+              if (messages.value[messageIndex]) {
+                messages.value[messageIndex].content = accumulatedContent;
+              }
             }
 
             if (delta.reasoning_content) {
               accumulatedReasoning += delta.reasoning_content;
-              messages.value[messageIndex].reasoning_content = accumulatedReasoning;
+              if (messages.value[messageIndex]) {
+                messages.value[messageIndex].reasoning_content = accumulatedReasoning;
+              }
             }
-
-            // 强制更新视图
             await nextTick();
-            // scrollToBottom();
           } catch (e) {
             console.error('解析流数据失败:', e, line);
           }
         }
       }
     }
-
-    // 处理最后的缓冲区内容
-    if (buffer.startsWith('data: ') && buffer !== 'data: [DONE]') {
+    
+    // 处理可能残留在缓冲区中的数据
+    if (buffer.startsWith('data: ') && buffer.trim() !== 'data: [DONE]') {
       try {
         const data = buffer.slice(6);
         const parsed = JSON.parse(data);
@@ -449,25 +455,39 @@ const callDeepSeekAPI = async (prompt) => {
 
         if (delta.content) {
           accumulatedContent += delta.content;
-          messages.value[messageIndex].content = accumulatedContent;
+          if (messages.value[messageIndex]) {
+            messages.value[messageIndex].content = accumulatedContent;
+          }
         }
 
         if (delta.reasoning_content) {
           accumulatedReasoning += delta.reasoning_content;
-          messages.value[messageIndex].reasoning_content = accumulatedReasoning;
+          if (messages.value[messageIndex]) {
+            messages.value[messageIndex].reasoning_content = accumulatedReasoning;
+          }
         }
       } catch (e) {
-        console.error('解析最后的流数据失败:', e);
+        console.error('解析最后的流数据失败:', e, buffer);
       }
     }
 
-    // 完成后更新消息状态
-    if (currentModel.value === 'r1' && accumulatedReasoning) {
-      messages.value[messageIndex].showReasoning = false;
+    // API 调用成功且流处理完毕
+    if (messages.value[messageIndex]) {
+      if (currentModel.value === 'r1' && messages.value[messageIndex].reasoning_content) {
+        // messages.value[messageIndex].showReasoning = false;
+      }
+      messages.value[messageIndex].loading = false; // 关键：设置加载完成
     }
+
   } catch (error) {
-    console.error('DeepSeek API 请求失败:', error);
-    throw error;
+    console.error('DeepSeek API 请求或处理失败:', error);
+    if (messages.value[messageIndex]) {
+      messages.value[messageIndex].content = 
+        `抱歉，AI助手通讯时发生错误。(错误详情: ${error.message || '未知错误'})`;
+      messages.value[messageIndex].loading = false; // 关键：设置加载完成（即使是失败）
+    }
+    // 此处不再向上抛出 error，因为已经在此处理了消息的更新
+    // sendMessage 函数的 finally 块仍会负责全局 isLoading 状态
   }
 };
 
@@ -748,6 +768,12 @@ watch(
   margin-bottom: 10px;
   border-bottom: 1px dashed #ddd;
   padding-top: 5px;
+}
+
+.reasoning-loading {
+  animation: spin 1s linear infinite;
+  font-size: 12px;
+  margin-right: 5px;
 }
 
 .reasoning-header {
