@@ -1,6 +1,6 @@
 {
   "name": "secNote",
-  "version": "1.0.5-8",
+  "version": "1.0.5-7",
   "private": true,
   "main": "dist-electron/main.js",
   "author": "Sec <1774079811@qq.com>",
@@ -9,7 +9,8 @@
     "build": "npm version prerelease && vue-tsc && vite build && electron-builder && node build/js/upload.js",
     "dev": "vite",
     "preview": "vite preview",
-    "upload": "node build/js/upload.js"
+    "upload": "node build/js/upload.js",
+    "uploadWeb": "bash build/js/uploadWeb.sh"
   },
   "dependencies": {
     "@tinymce/tinymce-vue": "^5.1.1",

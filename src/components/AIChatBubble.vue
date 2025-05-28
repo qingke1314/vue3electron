@@ -92,12 +92,7 @@
           深度思考
         </el-button>
 
-        <el-button
-          disabled
-          size="small"
-          :type="enableWebSearch ? 'primary' : 'default'"
-          @click="enableWebSearch = !enableWebSearch"
-        >
+        <el-button disabled size="small">
           <el-tooltip content="官方API尚未提供该功能" placement="top"> 联网搜索 </el-tooltip>
         </el-button>
         <el-button size="small" @click="clearHistory">清空历史</el-button>
@@ -148,7 +143,6 @@ const apiKeyInput = ref(apiKey.value);
 const userStore = useUsersStore();
 const currentModel = ref('v3');
 const isFullscreen = ref(false);
-const enableWebSearch = ref(false);
 
 // 计算属性
 const bubbleStyle = computed(() => ({
@@ -357,9 +351,7 @@ const callDeepSeekAPI = async (prompt) => {
       messages: [
         {
           role: 'system',
-          content: enableWebSearch.value
-            ? '你是一个有用的AI助手，可以联网搜索信息。请提供准确、简洁的回答，并标注信息来源。'
-            : '你是一个有用的AI助手，请提供准确、简洁的回答。',
+          content: '你是一个有用的AI助手，请提供准确、简洁的回答。',
         },
         ...messages.value
           .filter((m) => !m.loading)
@@ -372,7 +364,6 @@ const callDeepSeekAPI = async (prompt) => {
       temperature: 1.3,
       max_tokens: 5000,
       stream: true,
-      web_search: enableWebSearch.value,
     };
 
     // 创建一个新的消息索引
