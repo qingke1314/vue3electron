@@ -62,6 +62,12 @@
               </div>
             </div>
           </div>
+          <div v-if="message.role === 'assistant' && message.content" class="message-actions">
+            <el-button link type="primary" size="small" @click="saveAsNote(message)">
+              <el-icon><DocumentAdd /></el-icon>
+              保存为笔记
+            </el-button>
+          </div>
         </div>
       </div>
 
@@ -99,6 +105,7 @@
           <el-tooltip content="官方API尚未提供该功能" placement="top"> 联网搜索 </el-tooltip>
         </el-button>
         <el-button size="small" @click="clearHistory">清空历史</el-button>
+        <el-button size="small" @click="showSaveDialog = true"> 存为笔记 </el-button>
         <el-button v-if="!apiKey" size="small" @click="showApiConfig = true">API 设置</el-button>
         <span v-if="apiKey" class="api-status success">API 已配置</span>
         <span v-else class="api-status error">未配置 API</span>
@@ -118,15 +125,87 @@
       </el-form-item>
     </el-form>
   </el-dialog>
+  <!-- 单条消息保存对话框 -->
+  <el-dialog v-model="showSingleSaveDialog" title="保存单条消息" width="600px" append-to-body>
+    <div class="save-note-container">
+      <div class="note-title-input">
+        <div class="input-label">笔记标题</div>
+        <el-input v-model="singleNoteTitle" placeholder="请输入笔记标题" />
+      </div>
+      <div class="message-preview" v-if="currentMessage">
+        <div class="preview-label">内容预览</div>
+        <div class="preview-content" v-html="formatDialogToHtml(currentMessage)"></div>
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="showSingleSaveDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveSingleMessage">保存</el-button>
+      </div>
+    </template>
+  </el-dialog>
+
+  <!-- 批量保存对话框 -->
+  <el-dialog v-model="showSaveDialog" title="保存为笔记" width="600px" append-to-body>
+    <div class="save-note-container">
+      <div class="note-title-input">
+        <div class="input-label">笔记标题</div>
+        <el-input v-model="noteTitle" placeholder="请输入笔记标题" />
+      </div>
+      <div class="messages-selection">
+        <div class="selection-label">选择要保存的对话内容</div>
+        <el-checkbox-group v-model="selectedMessages" class="checkbox-list">
+          <div v-for="(message, index) in messages" :key="index" class="message-selection-item">
+            <el-checkbox :label="index" border>
+              <div class="message-preview-item">
+                <div class="message-role">{{ message.role === 'user' ? '我' : 'AI' }}</div>
+                <div
+                  class="message-content-preview"
+                  v-html="formatMessagePreview(message.content)"
+                ></div>
+              </div>
+            </el-checkbox>
+          </div>
+        </el-checkbox-group>
+      </div>
+    </div>
+    <template #footer>
+      <div class="dialog-footer">
+        <el-button @click="showSaveDialog = false">取消</el-button>
+        <el-button type="primary" @click="saveSelectedAsNote">保存</el-button>
+      </div>
+    </template>
+  </el-dialog>
 </template>
 
 <script setup>
-import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue';
-import { ChatRound, Position, ArrowRight, FullScreen, Aim, Loading } from '@element-plus/icons-vue';
+import { ref, reactive, computed, onMounted, nextTick, watch, onUnmounted } from 'vue';
+import {
+  ChatRound,
+  Position,
+  ArrowRight,
+  DocumentAdd,
+  FullScreen,
+  Aim,
+  Loading,
+} from '@element-plus/icons-vue';
+import { addPosts } from '@/apis/posts';
 import { useUsersStore } from '@/pinia/users';
 import axios from 'axios';
 import DOMPurify from 'dompurify';
 import { marked } from 'marked';
+
+// 节流函数 - 限制函数执行频率
+const throttle = (fn, delay) => {
+  let lastCall = 0;
+  return function (...args) {
+    const now = Date.now();
+    if (now - lastCall >= delay) {
+      lastCall = now;
+      fn.apply(this, args);
+    }
+  };
+};
 
 console.log(import.meta.env, 'import.meta.env');
 const apiKeyInEnv = import.meta.env.VITE_DEEP_SEEK_API_KEY;
@@ -146,6 +225,13 @@ const apiKeyInput = ref(apiKey.value);
 const userStore = useUsersStore();
 const currentModel = ref('v3');
 const isFullscreen = ref(false);
+// 笔记相关状态
+const showSaveDialog = ref(false);
+const showSingleSaveDialog = ref(false);
+const selectedMessages = ref([]);
+const noteTitle = ref('');
+const singleNoteTitle = ref('');
+const currentMessage = ref(null);
 
 // 计算属性
 const bubbleStyle = computed(() => ({
@@ -213,23 +299,23 @@ const toggleChat = (event) => {
   if (isOpen.value) {
     unreadCount.value = 0;
     nextTick(() => {
-      // scrollToBottom();
+      scrollToBottom();
     });
   }
 };
 
 const scrollToBottom = () => {
   if (messagesRef.value) {
-    messagesRef.value.scrollTop = messagesRef.value.scrollHeight;
+    // 使用requestAnimationFrame确保DOM更新完成后再滚动
+    requestAnimationFrame(() => {
+      messagesRef.value.scrollTop = messagesRef.value.scrollHeight;
+    });
   }
 };
 
 // 切换全屏
 const toggleFullscreen = () => {
   isFullscreen.value = !isFullscreen.value;
-  nextTick(() => {
-    // scrollToBottom();
-  });
 };
 
 // 切换思考过程显示
@@ -313,21 +399,25 @@ const sendMessage = async () => {
 
 // 从 localStorage 加载历史消息
 const loadHistory = () => {
-  const savedMessages = localStorage.getItem('ai_chat_history');
-  if (savedMessages) {
-    try {
+  try {
+    const savedMessages = localStorage.getItem('ai_chat_history');
+    if (savedMessages) {
       messages.value = JSON.parse(savedMessages);
-    } catch (e) {
-      console.error('加载历史消息失败:', e);
-      messages.value = [];
     }
+  } catch (e) {
+    console.error('加载历史消息失败:', e);
+    messages.value = [];
   }
 };
 
-// 保存历史消息到 localStorage
-const saveHistory = () => {
-  localStorage.setItem('ai_chat_history', JSON.stringify(messages.value));
-};
+// 保存历史消息到 localStorage - 使用节流防止频繁保存
+const saveHistory = throttle(() => {
+  try {
+    localStorage.setItem('ai_chat_history', JSON.stringify(messages.value));
+  } catch (error) {
+    console.error('保存历史记录失败:', error);
+  }
+}, 1000); // 1秒内最多执行一次
 
 // 清空历史记录
 const clearHistory = () => {
@@ -335,13 +425,11 @@ const clearHistory = () => {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning',
-  })
-    .then(() => {
-      messages.value = [];
-      saveHistory();
-      ElMessage.success('历史记录已清空');
-    })
-    .catch(() => {});
+  }).then(() => {
+    messages.value = [];
+    saveHistory();
+    ElMessage.success('历史记录已清空');
+  });
 };
 
 // 监听消息变化，自动保存
@@ -364,6 +452,7 @@ const callDeepSeekAPI = async (prompt) => {
     reasoning_content: currentModel.value === 'r1' ? '' : null,
   });
 
+  let response = null;
   try {
     const modelName = currentModel.value === 'v3' ? 'deepseek-chat' : 'deepseek-reasoner';
     const requestBody = {
@@ -375,7 +464,7 @@ const callDeepSeekAPI = async (prompt) => {
         },
         // 获取 placeholder 之前的所有消息作为历史记录
         ...messages.value
-          .slice(0, messageIndex) 
+          .slice(0, messageIndex)
           .filter((m) => !m.loading) // 确保不包含其他仍在加载中的消息
           .map((m) => ({
             role: m.role,
@@ -387,7 +476,7 @@ const callDeepSeekAPI = async (prompt) => {
       stream: true,
     };
 
-    const response = await fetch('https://api.deepseek.com/v1/chat/completions', {
+    response = await fetch('https://api.deepseek.com/v1/chat/completions', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -402,12 +491,26 @@ const callDeepSeekAPI = async (prompt) => {
       throw new Error(`HTTP error! status: ${response.status}, body: ${errorBody}`);
     }
 
-    const reader = response.body.getReader();
-    const decoder = new TextDecoder();
-    let accumulatedContent = '';
-    let accumulatedReasoning = '';
-    let buffer = '';
+    await processStreamResponse(response, messageIndex);
+  } catch (error) {
+    console.error('DeepSeek API 请求或处理失败:', error);
+    if (messages.value[messageIndex]) {
+      messages.value[messageIndex].content =
+        `抱歉，AI助手通讯时发生错误。(错误详情: ${error.message || '未知错误'})`;
+      messages.value[messageIndex].loading = false; // 设置加载完成（即使是失败）
+    }
+  }
+};
 
+// 处理流式响应
+const processStreamResponse = async (response, messageIndex) => {
+  const reader = response.body.getReader();
+  const decoder = new TextDecoder();
+  let accumulatedContent = '';
+  let accumulatedReasoning = '';
+  let buffer = '';
+
+  try {
     while (true) {
       const { done, value } = await reader.read();
       if (done) break;
@@ -438,6 +541,7 @@ const callDeepSeekAPI = async (prompt) => {
                 messages.value[messageIndex].reasoning_content = accumulatedReasoning;
               }
             }
+            scrollToBottom();
             await nextTick();
           } catch (e) {
             console.error('解析流数据失败:', e, line);
@@ -445,7 +549,7 @@ const callDeepSeekAPI = async (prompt) => {
         }
       }
     }
-    
+
     // 处理可能残留在缓冲区中的数据
     if (buffer.startsWith('data: ') && buffer.trim() !== 'data: [DONE]') {
       try {
@@ -473,21 +577,12 @@ const callDeepSeekAPI = async (prompt) => {
 
     // API 调用成功且流处理完毕
     if (messages.value[messageIndex]) {
-      if (currentModel.value === 'r1' && messages.value[messageIndex].reasoning_content) {
-        // messages.value[messageIndex].showReasoning = false;
-      }
-      messages.value[messageIndex].loading = false; // 关键：设置加载完成
+      scrollToBottom();
+      messages.value[messageIndex].loading = false;
     }
-
   } catch (error) {
-    console.error('DeepSeek API 请求或处理失败:', error);
-    if (messages.value[messageIndex]) {
-      messages.value[messageIndex].content = 
-        `抱歉，AI助手通讯时发生错误。(错误详情: ${error.message || '未知错误'})`;
-      messages.value[messageIndex].loading = false; // 关键：设置加载完成（即使是失败）
-    }
-    // 此处不再向上抛出 error，因为已经在此处理了消息的更新
-    // sendMessage 函数的 finally 块仍会负责全局 isLoading 状态
+    console.error('处理流响应失败:', error);
+    throw error; // 向上传播错误
   }
 };
 
@@ -510,39 +605,147 @@ const toggleModel = () => {
   currentModel.value = currentModel.value === 'v3' ? 'r1' : 'v3';
 };
 
+// 格式化对话内容为HTML
+const formatDialogToHtml = (message) => {
+  const roleClass = message.role === 'user' ? 'user-message' : 'ai-message';
+  const roleName = message.role === 'user' ? '我' : 'AI';
+
+  // 使用marked将Markdown转换为HTML，然后使用DOMPurify清理
+  const formattedContent = DOMPurify.sanitize(marked(message.content));
+
+  return `
+    <div class="${roleClass}" style="margin: 10px 0; padding: 15px; border-radius: 8px; background: ${message.role === 'user' ? '#f0f7ff' : '#f5f5f5'};">
+      <div style="font-weight: bold; margin-bottom: 8px; color: #409EFF;">${roleName}：</div>
+      <div style="line-height: 1.6;">${formattedContent}</div>
+    </div>
+  `.trim();
+};
+
+// 保存单条消息为笔记
+const saveAsNote = async (message) => {
+  currentMessage.value = message;
+  singleNoteTitle.value = `AI对话记录 - ${new Date().toLocaleString()}`;
+  showSingleSaveDialog.value = true;
+};
+
+// 确认保存单条消息
+const saveSingleMessage = async () => {
+  if (!singleNoteTitle.value.trim()) {
+    ElMessage.warning('请输入笔记标题');
+    return;
+  }
+
+  try {
+    const note = {
+      title: singleNoteTitle.value.trim(),
+      content: formatDialogToHtml(currentMessage.value),
+      published: false,
+    };
+
+    await addPosts(note);
+    ElMessage.success('笔记保存成功，请在草稿中查看');
+    showSingleSaveDialog.value = false;
+    currentMessage.value = null;
+    singleNoteTitle.value = '';
+  } catch (error) {
+    console.error('保存笔记失败:', error);
+    ElMessage.error('保存笔记失败');
+  }
+};
+
+// 格式化消息预览
+const formatMessagePreview = (content) => {
+  if (!content) return '';
+
+  try {
+    // 先将内容转换为HTML
+    const htmlContent = DOMPurify.sanitize(marked(content));
+
+    // 提取纯文本用于截断
+    const tempDiv = document.createElement('div');
+    tempDiv.innerHTML = htmlContent;
+    const textContent = tempDiv.textContent || tempDiv.innerText || '';
+
+    // 截取前15个字符作为预览
+    const preview = textContent.length > 15 ? textContent.slice(0, 15) + '...' : textContent;
+
+    // 生成预览HTML
+    return DOMPurify.sanitize(marked(preview));
+  } catch (error) {
+    console.error('格式化预览失败:', error);
+    return DOMPurify.sanitize(content.substring(0, 15) + '...');
+  }
+};
+
+// 保存选中的消息为笔记
+const saveSelectedAsNote = async () => {
+  if (selectedMessages.value.length === 0) {
+    ElMessage.warning('请至少选择一条消息');
+    return;
+  }
+
+  if (!noteTitle.value.trim()) {
+    ElMessage.warning('请输入笔记标题');
+    return;
+  }
+
+  try {
+    const selectedContent = selectedMessages.value
+      .sort((a, b) => a - b)
+      .map((index) => messages.value[index]);
+
+    // 将所有对话内容包装在一个容器中
+    const formattedContent = `
+      <div class="chat-container" style="font-family: Arial, sans-serif;">
+        ${selectedContent.map((msg) => formatDialogToHtml(msg)).join('\n')}
+      </div>
+    `.trim();
+
+    const note = {
+      title: noteTitle.value.trim(),
+      content: formattedContent,
+      published: false,
+    };
+
+    await addPosts(note);
+    ElMessage.success('笔记保存成功，请在草稿中查看');
+    showSaveDialog.value = false;
+    selectedMessages.value = [];
+    noteTitle.value = '';
+  } catch (error) {
+    console.error('保存笔记失败:', error);
+    ElMessage.error('保存笔记失败');
+  }
+};
+
 // 初始化
 onMounted(() => {
   // 从 localStorage 读取位置
-  const savedPosition = localStorage.getItem('ai_chat_position');
-  if (savedPosition) {
-    try {
+  try {
+    const savedPosition = localStorage.getItem('ai_chat_position');
+    if (savedPosition) {
       const pos = JSON.parse(savedPosition);
       position.x = pos.x;
       position.y = pos.y;
-    } catch (e) {
-      console.error('无法解析保存的位置', e);
     }
+  } catch (e) {
+    console.error('无法解析保存的位置', e);
   }
 
   // 确保气泡在视口内
   nextTick(() => {
-    if (bubbleRef.value) {
-      const maxX = window.innerWidth - bubbleRef.value.offsetWidth;
-      const maxY = window.innerHeight - bubbleRef.value.offsetHeight;
-
-      position.x = Math.max(0, Math.min(position.x, maxX));
-      position.y = Math.max(0, Math.min(position.y, maxY));
-    }
+    adjustBubblePosition();
   });
 
   // 监听窗口大小变化
-  window.addEventListener('resize', onWindowResize);
+  window.addEventListener('resize', throttle(onWindowResize, 200));
 
   // 初始化时加载历史记录
   loadHistory();
 });
 
-const onWindowResize = () => {
+// 调整气泡位置确保在可视区域内
+const adjustBubblePosition = () => {
   if (bubbleRef.value) {
     const maxX = window.innerWidth - bubbleRef.value.offsetWidth;
     const maxY = window.innerHeight - bubbleRef.value.offsetHeight;
@@ -552,19 +755,141 @@ const onWindowResize = () => {
   }
 };
 
-// 监听消息列表变化，自动滚动到底部
-watch(
-  messages,
-  () => {
-    nextTick(() => {
-      scrollToBottom();
-    });
-  },
-  { deep: true }
-);
+const onWindowResize = () => {
+  adjustBubblePosition();
+};
+
+// 在组件卸载时移除事件监听器
+onUnmounted(() => {
+  window.removeEventListener('resize', onWindowResize);
+});
 </script>
 
 <style scoped>
+.message-actions {
+  margin-top: 8px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.save-note-container {
+  padding: 0 20px;
+}
+
+.input-label,
+.preview-label,
+.selection-label {
+  font-weight: bold;
+  margin-bottom: 8px;
+  color: #303133;
+  font-size: 14px;
+}
+
+.note-title-input {
+  margin-bottom: 20px;
+}
+
+.message-preview {
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  padding: 16px;
+  background-color: #f8f9fa;
+  margin-bottom: 20px;
+}
+
+.preview-content {
+  max-height: 300px;
+  overflow-y: auto;
+  padding: 10px;
+  background: white;
+  border-radius: 4px;
+  border: 1px solid #ebeef5;
+}
+
+.messages-selection {
+  margin-top: 20px;
+}
+
+.checkbox-list {
+  max-height: 400px;
+  overflow-y: auto;
+  padding: 10px;
+  border: 1px solid #e4e7ed;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+}
+
+.message-selection-item {
+  margin-bottom: 10px;
+}
+
+.message-selection-item :deep(.el-checkbox) {
+  width: 100%;
+}
+
+.message-selection-item :deep(.el-checkbox__label) {
+  white-space: normal;
+  padding-left: 8px;
+}
+
+.message-preview-item {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.message-role {
+  font-weight: bold;
+  color: #409eff;
+  font-size: 13px;
+}
+
+.message-content-preview {
+  color: #606266;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.message-content-preview :deep(p) {
+  margin: 0;
+}
+
+.message-content-preview :deep(pre),
+.message-content-preview :deep(code) {
+  background-color: #f0f0f0;
+  padding: 2px 4px;
+  border-radius: 3px;
+  font-family: monospace;
+  font-size: 12px;
+}
+
+.dialog-footer {
+  text-align: right;
+  margin-top: 20px;
+}
+
+:deep(.el-dialog__body) {
+  padding-top: 20px;
+  padding-bottom: 0;
+}
+
+/* 滚动条样式 */
+.preview-content::-webkit-scrollbar,
+.checkbox-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.preview-content::-webkit-scrollbar-thumb,
+.checkbox-list::-webkit-scrollbar-thumb {
+  background-color: #dcdfe6;
+  border-radius: 3px;
+}
+
+.preview-content::-webkit-scrollbar-track,
+.checkbox-list::-webkit-scrollbar-track {
+  background-color: #f8f9fa;
+}
+
 .ai-chat-bubble {
   position: fixed;
   width: 50px;
