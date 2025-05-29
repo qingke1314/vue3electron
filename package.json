@@ -10,7 +10,7 @@
     "dev": "vite",
     "preview": "vite preview",
     "upload": "node build/js/upload.js",
-    "uploadWeb": "bash build/js/uploadWeb.sh"
+    "uploadWeb": "bash build/shell/webUpload.sh"
   },
   "dependencies": {
     "@tinymce/tinymce-vue": "^5.1.1",
