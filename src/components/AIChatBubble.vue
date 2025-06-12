@@ -460,7 +460,7 @@ const callDeepSeekAPI = async (prompt) => {
       messages: [
         {
           role: 'system',
-          content: '你是一个有用的AI助手，请提供准确、简洁的回答。',
+          content: '你是一个有用的AI助手，请提供准确、详细的回答。',
         },
         // 获取 placeholder 之前的所有消息作为历史记录
         ...messages.value
@@ -471,8 +471,8 @@ const callDeepSeekAPI = async (prompt) => {
             content: m.content,
           })),
       ],
-      temperature: 1.3,
-      max_tokens: 8192,
+      temperature: 1.2,
+      max_tokens: currentModel.value === 'v3' ? 8192 : 64 * 1024,
       stream: true,
     };
 
