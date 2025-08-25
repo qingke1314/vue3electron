@@ -59,6 +59,12 @@
       ],
       "icon": "build/icons/icon.png"
     },
+    "mac": {
+      "target": [
+        "dmg"
+      ],
+      "icon": "build/icons/icon.png"
+    },
     "afterAllArtifactBuild": null,
     "nsis": {
       "oneClick": false,
