@@ -1,6 +1,6 @@
 {
   "name": "secNote",
-  "version": "1.0.5-18",
+  "version": "1.0.5-19",
   "private": true,
   "main": "dist-electron/main.js",
   "author": "Sec <1774079811@qq.com>",
