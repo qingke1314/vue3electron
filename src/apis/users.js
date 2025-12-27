@@ -10,7 +10,7 @@ export const queryRegister = (data) => {
 
 export const queryLogin = (data) => {
   return request({
-    url: '/auth/login',
+    url: '/users/login',
     method: 'POST',
     data,
   });
@@ -18,7 +18,7 @@ export const queryLogin = (data) => {
 
 export const validateToken = () => {
   return request({
-    url: '/auth/validate',
+    url: '/users/validate',
     method: 'POST',
   });
 };

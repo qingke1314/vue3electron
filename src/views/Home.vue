@@ -112,7 +112,7 @@ const getData = async () => {
   }
   try {
     const res = await getPosts(params);
-    notes.value = res.map((n) => ({
+    notes.value = res.data.map((n) => ({
       ...n,
       previewText: n.previewText || n.content?.substring(0, 100) + '...',
       updateTime: n.updateTime || n.updatedAt || Date.now(),

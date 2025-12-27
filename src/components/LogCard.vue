@@ -84,7 +84,7 @@
       </div>
     </template>
     <div class="log-meta" :class="{ 'inline-meta': displayMode === 'list-item' }">
-      <p><strong>作者:</strong> {{ log.author?.name || '未知作者' }}</p>
+      <p><strong>作者:</strong> {{ log.authorName || '未知作者' }}</p>
       <p>
         <strong>日期:</strong>
         {{
