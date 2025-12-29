@@ -55,7 +55,7 @@ export const deletePosts = (id) => {
  * @param {string} postId 日志ID
  */
 export const getCommentsByPostId = (postId) => {
-  return request.get(`/posts/${postId}/comments`);
+  return request.get(`/comments?postId=${postId}`);
 };
 
 /**
