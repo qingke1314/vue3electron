@@ -2392,7 +2392,7 @@ function newError(message, code) {
   return error2;
 }
 var httpExecutor = {};
-var src$2 = { exports: {} };
+var src$1 = { exports: {} };
 var browser = { exports: {} };
 var ms;
 var hasRequiredMs;
@@ -2616,7 +2616,7 @@ function requireCommon() {
       createDebug.namespaces = namespaces;
       createDebug.names = [];
       createDebug.skips = [];
-      const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(" ", ",").split(",").filter(Boolean);
+      const split = (typeof namespaces === "string" ? namespaces : "").trim().replace(/\s+/g, ",").split(",").filter(Boolean);
       for (const ns of split) {
         if (ns[0] === "-") {
           createDebug.skips.push(ns.slice(1));
@@ -2835,7 +2835,7 @@ function requireBrowser() {
     function load2() {
       let r;
       try {
-        r = exports2.storage.getItem("debug");
+        r = exports2.storage.getItem("debug") || exports2.storage.getItem("DEBUG");
       } catch (error2) {
       }
       if (!r && typeof process !== "undefined" && "env" in process) {
@@ -3154,11 +3154,11 @@ function requireNode$1() {
   return node$1.exports;
 }
 if (typeof process === "undefined" || process.type === "renderer" || process.browser === true || process.__nwjs) {
-  src$2.exports = requireBrowser();
+  src$1.exports = requireBrowser();
 } else {
-  src$2.exports = requireNode$1();
+  src$1.exports = requireNode$1();
 }
-var srcExports$1 = src$2.exports;
+var srcExports$1 = src$1.exports;
 var ProgressCallbackTransform$1 = {};
 Object.defineProperty(ProgressCallbackTransform$1, "__esModule", { value: true });
 ProgressCallbackTransform$1.ProgressCallbackTransform = void 0;
@@ -8303,8 +8303,8 @@ var debug_1 = debug$1;
   createToken("NONNUMERICIDENTIFIER", `\\d*[a-zA-Z-]${LETTERDASHNUMBER}*`);
   createToken("MAINVERSION", `(${src2[t2.NUMERICIDENTIFIER]})\\.(${src2[t2.NUMERICIDENTIFIER]})\\.(${src2[t2.NUMERICIDENTIFIER]})`);
   createToken("MAINVERSIONLOOSE", `(${src2[t2.NUMERICIDENTIFIERLOOSE]})\\.(${src2[t2.NUMERICIDENTIFIERLOOSE]})\\.(${src2[t2.NUMERICIDENTIFIERLOOSE]})`);
-  createToken("PRERELEASEIDENTIFIER", `(?:${src2[t2.NUMERICIDENTIFIER]}|${src2[t2.NONNUMERICIDENTIFIER]})`);
-  createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src2[t2.NUMERICIDENTIFIERLOOSE]}|${src2[t2.NONNUMERICIDENTIFIER]})`);
+  createToken("PRERELEASEIDENTIFIER", `(?:${src2[t2.NONNUMERICIDENTIFIER]}|${src2[t2.NUMERICIDENTIFIER]})`);
+  createToken("PRERELEASEIDENTIFIERLOOSE", `(?:${src2[t2.NONNUMERICIDENTIFIER]}|${src2[t2.NUMERICIDENTIFIERLOOSE]})`);
   createToken("PRERELEASE", `(?:-(${src2[t2.PRERELEASEIDENTIFIER]}(?:\\.${src2[t2.PRERELEASEIDENTIFIER]})*))`);
   createToken("PRERELEASELOOSE", `(?:-?(${src2[t2.PRERELEASEIDENTIFIERLOOSE]}(?:\\.${src2[t2.PRERELEASEIDENTIFIERLOOSE]})*))`);
   createToken("BUILDIDENTIFIER", `${LETTERDASHNUMBER}+`);
@@ -8375,7 +8375,7 @@ var identifiers$1 = {
 };
 const debug = debug_1;
 const { MAX_LENGTH, MAX_SAFE_INTEGER } = constants$1;
-const { safeRe: re$1, safeSrc: src$1, t: t$1 } = reExports;
+const { safeRe: re$1, t: t$1 } = reExports;
 const parseOptions = parseOptions_1;
 const { compareIdentifiers } = identifiers$1;
 let SemVer$d = class SemVer {
@@ -8520,8 +8520,7 @@ let SemVer$d = class SemVer {
         throw new Error("invalid increment argument: identifier is empty");
       }
       if (identifier) {
-        const r = new RegExp(`^${this.options.loose ? src$1[t$1.PRERELEASELOOSE] : src$1[t$1.PRERELEASE]}$`);
-        const match = `-${identifier}`.match(r);
+        const match = `-${identifier}`.match(this.options.loose ? re$1[t$1.PRERELEASELOOSE] : re$1[t$1.PRERELEASE]);
         if (!match || match[1] !== identifier) {
           throw new Error(`invalid identifier: ${identifier}`);
         }
@@ -14417,6 +14416,11 @@ function requireRenderer() {
     const RendererErrorHandler = requireRendererErrorHandler();
     const transportConsole = requireConsole$1();
     const transportIpc = requireIpc$1();
+    if (typeof process === "object" && process.type === "browser") {
+      console.warn(
+        "electron-log/renderer is loaded in the main process. It could cause unexpected behaviour."
+      );
+    }
     module2.exports = createLogger();
     module2.exports.Logger = Logger;
     module2.exports.default = module2.exports;
@@ -15594,7 +15598,8 @@ function requireStyle() {
     blue: "\x1B[34m",
     magenta: "\x1B[35m",
     cyan: "\x1B[36m",
-    white: "\x1B[37m"
+    white: "\x1B[37m",
+    gray: "\x1B[90m"
   };
   function styleToAnsi(style2) {
     const color = style2.replace(/color:\s*(\w+).*/, "$1").toLowerCase();
@@ -15667,6 +15672,15 @@ function requireConsole() {
   });
   function consoleTransportFactory(logger) {
     return Object.assign(transport, {
+      colorMap: {
+        error: "red",
+        warn: "yellow",
+        info: "cyan",
+        verbose: "unset",
+        debug: "gray",
+        silly: "gray",
+        default: "unset"
+      },
       format: DEFAULT_FORMAT,
       level: "silly",
       transforms: [
@@ -15694,7 +15708,11 @@ function requireConsole() {
     if (typeof transport.format !== "string" || !transport.format.includes("%c")) {
       return data;
     }
-    return [`color:${levelToStyle(message.level)}`, "color:unset", ...data];
+    return [
+      `color:${levelToStyle(message.level, transport)}`,
+      "color:unset",
+      ...data
+    ];
   }
   function canUseStyles(useStyleValue, level) {
     if (typeof useStyleValue === "boolean") {
@@ -15710,9 +15728,8 @@ function requireConsole() {
     const nextTransform = useStyles ? applyAnsiStyles : removeStyles;
     return nextTransform(args);
   }
-  function levelToStyle(level) {
-    const map2 = { error: "red", warn: "yellow", info: "cyan", default: "unset" };
-    return map2[level] || map2.default;
+  function levelToStyle(level, transport) {
+    return transport.colorMap[level] || transport.colorMap.default;
   }
   return console_1;
 }

@@ -36,7 +36,7 @@
           <div v-if="comments.length > 0" class="comments-list">
             <div v-for="comment in comments" :key="comment.id" class="comment-item">
               <div class="comment-author">
-                <strong>{{ comment.author?.name || '匿名用户' }}</strong>
+                <strong>{{ comment.authorName || '匿名用户' }}</strong>
                 <span class="comment-date">{{ formatDate(comment.createdAt) }}</span>
               </div>
               <!-- 假设 comment.content 是HTML字符串，也需要清理 -->
@@ -162,7 +162,7 @@ const fetchComments = async () => {
   try {
     const commentsResponse = await getCommentsByPostId(post.value.id);
     // 假设 commentsResponse 直接是评论数组，或者需要 .data 取出
-    comments.value = commentsResponse.map((comment) => {
+    comments.value = commentsResponse.data.map((comment) => {
       if (comment && typeof comment.content === 'string' && isPotentiallyHtml(comment.content)) {
         return { ...comment, contentHtml: comment.content };
       }
@@ -182,6 +182,7 @@ const sanitizeHtml = (htmlString) => {
 };
 
 const submitComment = async () => {
+  console.log(comments.value);
   if (!newCommentText.value.trim()) {
     ElMessage.warning('评论内容不能为空！');
     return;
@@ -195,21 +196,22 @@ const submitComment = async () => {
   try {
     const commentData = {
       content: newCommentText.value,
+      postId: post.value.id,
       // 如果需要，可以在这里添加其他评论信息，例如用户信息（如果后端不自动处理）
       // authorId: currentUser.id 等
     };
-    const newComment = await addCommentToPost(post.value.id, commentData);
+    const newComment = await addCommentToPost(commentData);
     // 假设成功后，后端返回新创建的评论对象
     // 更新本地评论列表，或重新获取评论
-    if (newComment) {
+    if (newComment?.data) {
       // 预处理新评论的 contentHtml 字段
-      let processedNewComment = { ...newComment };
+      let processedNewComment = { ...newComment.data };
       if (
-        newComment.content &&
-        typeof newComment.content === 'string' &&
-        isPotentiallyHtml(newComment.content)
+        newComment.data.content &&
+        typeof newComment.data.content === 'string' &&
+        isPotentiallyHtml(newComment.data.content)
       ) {
-        processedNewComment.contentHtml = newComment.content;
+        processedNewComment.contentHtml = newComment.data.content;
       }
       comments.value.unshift(processedNewComment); // 将新评论添加到列表顶部
     } else {

@@ -34,11 +34,11 @@ export const menuConfig = [
     name: '目录管理',
     icon: 'Folder',
     children: [
-      {
-        name: '目录概览',
-        path: '/directory-management/overview',
-        icon: 'Files',
-      },
+      // {
+      //   name: '目录概览',
+      //   path: '/directory-management/overview',
+      //   icon: 'Files',
+      // },
       {
         name: '目录配置',
         path: '/directory-management/config',

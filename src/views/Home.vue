@@ -100,6 +100,19 @@ const notes = ref([]);
 onMounted(() => {
   getData();
 });
+
+const pad2 = (n) => String(n).padStart(2, '0');
+
+const formatYMDHMS = (d) => {
+  const y = d.getFullYear();
+  const m = pad2(d.getMonth() + 1);
+  const day = pad2(d.getDate());
+  const hh = pad2(d.getHours());
+  const mm = pad2(d.getMinutes());
+  const ss = pad2(d.getSeconds());
+  return `${y}-${m}-${day} ${hh}:${mm}:${ss}`;
+};
+
 const getData = async () => {
   const params = {};
   switch (activeCategory.value) {
@@ -107,7 +120,7 @@ const getData = async () => {
       params.isFavorited = true;
       break;
     case 'recent':
-      params.lastEditedAfter = new Date().getTime() - 1000 * 60 * 60 * 24 * 3; // 3天前
+      params.lastEditedAfter = formatYMDHMS(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000));
       break;
   }
   try {

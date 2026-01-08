@@ -12,7 +12,7 @@ export const getPostById = (id) => {
   return request.get(`/posts/${id}`);
 };
 
-export const connectCheck = (id) => {
+export const connectCheck = () => {
   return request.get(`/`);
 };
 
@@ -63,22 +63,22 @@ export const getCommentsByPostId = (postId) => {
  * @param {string} postId 日志ID
  * @param {object} commentData 评论数据 (例如 { content: '评论内容' })
  */
-export const addCommentToPost = (postId, commentData) => {
-  return request.post(`/posts/${postId}/comments`, commentData);
+export const addCommentToPost = (commentData) => {
+  return request.post(`/comments/create`, commentData);
 };
 
 /**
  * 收藏文章
  */
 export const favoritePost = (postId) => {
-  return request.post(`/posts/${postId}/favorite`);
+  return request.post(`/posts/favorite?postId=${postId}`);
 };
 
 /**
  * 取消收藏文章
  */
 export const unfavoritePost = (postId) => {
-  return request.delete(`/posts/${postId}/favorite`);
+  return request.post(`/posts/favorite?postId=${postId}`);
 };
 
 /**
