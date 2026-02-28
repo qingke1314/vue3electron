@@ -413,7 +413,7 @@ const handleImportLogs = async (data) => {
   try {
     // 获取所有日志
     const posts = await getPosts();
-    allLogs.value = posts.data || [];
+    allLogs.value = posts || [];
     filteredLogs.value = [...allLogs.value];
   } catch (error) {
     ElMessage.error('获取日志列表失败');

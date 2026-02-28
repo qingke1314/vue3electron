@@ -10,7 +10,7 @@
         <div class="card-header">
           <h1>{{ post.title }}</h1>
           <div class="meta-info">
-            <span>作者: {{ post.authorName || '未知' }}</span>
+            <span>作者: {{ post.author?.name || '未知' }}</span>
             <span>发布日期: {{ formatDate(post.createdAt) }}</span>
             <el-tag :type="post.published ? 'success' : 'info'" size="small">
               {{ post.published ? '已发布' : '草稿' }}
@@ -110,7 +110,7 @@ onMounted(async () => {
       const response = await getPostById(postId);
       // 假设API直接返回帖子对象，如果不是，请根据实际结构调整
       // 例如，如果返回 { data: postData }，则用 response.data
-      post.value = response.data;
+      post.value = response;
       // 假设如果后端返回的是markdown, 你需要在这里转换为html
       // 例如: post.value.contentHtml = marked(response.content);
       // 这里我们先简单假设后端可能直接返回 content 字段作为纯文本或 contentHtml 作为html

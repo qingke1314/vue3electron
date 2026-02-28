@@ -29,14 +29,18 @@ service.interceptors.request.use(
 // 响应拦截器
 service.interceptors.response.use(
   (response) => {
-    const res = response.data;
-    if (res.code !== 1) { // 假设 0 代表成功
-      // 处理错误，例如弹窗提示
-      console.error('API Error:', res.message || 'Error');
-      return Promise.reject(new Error(res.message || 'Error'));
-    } else {
-      return res; // 只返回业务数据部分
-    }
+    // 对响应数据做点什么
+    // 如果你的后端返回的数据结构是 { code: 0, data: {}, message: '' } 这种形式
+    // 你可以在这里统一处理，例如：
+    // const res = response.data;
+    // if (res.code !== 0) { // 假设 0 代表成功
+    //   // 处理错误，例如弹窗提示
+    //   console.error('API Error:', res.message || 'Error');
+    //   return Promise.reject(new Error(res.message || 'Error'));
+    // } else {
+    //   return res.data; // 只返回业务数据部分
+    // }
+    return response.data; // 默认直接返回 response.data
   },
   (error) => {
     console.log('error', error);

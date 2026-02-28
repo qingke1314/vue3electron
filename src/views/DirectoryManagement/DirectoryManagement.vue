@@ -48,6 +48,7 @@ const filteredCurrentLogs = computed(() => {
 });
 
 const handleNodeClick = async (node) => {
+  console.log(node, 'node');
   currentSelectedNode.value = node;
   filterTextLogs.value = '';
   currentLogs.value = node?.isDirectory
@@ -70,15 +71,18 @@ const findItemByKey = (tree, id) => {
     })
   }
   filterFn(tree);
+  console.log(cutItem, 'curItem');
   return cutItem;
 }
 const handleLogActionCompleted = async () => {
+  console.log('completed');
   // 左侧树重新加载
   const newTreeData = await treeRef.value.loadTreeData();
   let currentNewNode = findItemByKey(newTreeData, currentSelectedNode.value.id);
   if (!currentNewNode) {
     currentNewNode = findItemByKey(newTreeData, (currentSelectedNode.value.parentDirectoryId || currentSelectedNode.value.parentId));
   }
+  console.log(currentNewNode, currentSelectedNode.value.parentDirectoryId, newTreeData, 'current');
   if(!currentNewNode) return;
   handleNodeClick(currentNewNode);
 };

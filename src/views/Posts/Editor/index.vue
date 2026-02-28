@@ -61,8 +61,8 @@ const loadNote = async (id) => {
   loading.value = true;
   try {
     const res = await getPostById(id);
-    form.value.title = res.data.title;
-    editorContent.value = res.data.content;
+    form.value.title = res.title;
+    editorContent.value = res.content;
   } catch (error) {
     ElMessage.error('加载笔记失败');
   } finally {

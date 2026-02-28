@@ -40,8 +40,8 @@ export const useUsersStore = defineStore('users', {
       }
       try {
         const response = await validateToken();
-        if (response?.data) {
-          this.userInfo = response.data;
+        if (response?.data?.user) {
+          this.userInfo = response.data.user;
           return true;
         } else {
           console.warn(

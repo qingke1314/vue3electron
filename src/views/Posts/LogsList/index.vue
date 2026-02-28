@@ -68,7 +68,7 @@ const getData = () => {
   const fn = route.query.directoryName ? getLogsByCategoryId : getPosts;
   fn(route.params.directoryId)
     .then((res) => {
-      logs.value = res.data.map((post) => ({
+      logs.value = res.map((post) => ({
         ...post,
         title: post.title || '无标题',
         publishDate: post.createdAt ? new Date(post.createdAt).toLocaleString() : '未知日期',

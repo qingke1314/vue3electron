@@ -139,9 +139,8 @@ const handleLogin = async (formInstance) => {
         password: form.value.password,
       })
         .then((res) => {
-          console.log(res, 'res');
-          const token = res?.data || {};
-          ElMessage.success('登录成功，欢迎登录SecNote');
+          const { token, user } = res?.data || {};
+          ElMessage.success('你好，' + user.name + '，欢迎登录SecNote');
           setToken(token, form.value.rememberMe);
           const currentEmail = form.value.email;
           let history = [...emailHistory.value];
